@@ -6,11 +6,24 @@ namespace BlackHeart
     // Интерфейс боя на IMGUI с пиксельным шрифтом. Получает данные через GameEvents.
     public class HUD : MonoBehaviour
     {
-        // Основной акцент — нежный пурпурно-красный, полосы урона — его потемневший вариант
+        // Основной акцент — нежный пурпурно-красный
         static readonly Color Accent = new Color(0.86f, 0.25f, 0.42f);
-        static readonly Color AccentDark = new Color(0.36f, 0.07f, 0.17f);
         static readonly Color Red = new Color(1f, 0.15f, 0.15f);
         static readonly Color Green = new Color(0.2f, 1f, 0.3f);
+
+        // Цвета полос здоровья: основа, блик сверху, тень снизу, пустая часть, «след» урона
+        struct BarStyle { public Color fill, light, shade, empty, trail; }
+        static readonly BarStyle PlayerBar = new BarStyle
+        {
+            fill = new Color(0.9f, 0.1f, 0.14f), light = new Color(1f, 0.45f, 0.4f), shade = new Color(0.55f, 0.03f, 0.08f),
+            empty = new Color(0.16f, 0.02f, 0.05f), trail = new Color(1f, 0.85f, 0.75f)
+        };
+        static readonly BarStyle EnemyBar = new BarStyle
+        {
+            fill = new Color(0.2f, 0.85f, 0.3f), light = new Color(0.6f, 1f, 0.55f), shade = new Color(0.08f, 0.45f, 0.18f),
+            empty = new Color(0.05f, 0.14f, 0.08f), trail = new Color(1f, 0.95f, 0.7f)
+        };
+        const float TrailDelay = 0.35f, TrailSpeed = 0.9f;   // «след» стоит на месте, затем стекает (доля полосы в секунду)
 
         class Popup
         {
@@ -26,6 +39,8 @@ namespace BlackHeart
         float messageTime;
         float gameOverTime;
         bool newRecord;
+        float playerTrail = 1f, enemyTrail = 1f, playerTrailWait, enemyTrailWait;
+        Enemy trailEnemy;
 
         GameManager gm => GameManager.I;
 
@@ -115,6 +130,7 @@ namespace BlackHeart
             float dt = Time.deltaTime;
             messageTime += dt;
             gameOverTime += dt;
+            UpdateTrails(dt);
             for (int i = popups.Count - 1; i >= 0; i--)
             {
                 var p = popups[i];
@@ -171,19 +187,36 @@ namespace BlackHeart
             }
         }
 
+        // «След» урона: после удара показывает потерянную часть полосы и с задержкой стекает к текущему значению
+        void UpdateTrails(float dt)
+        {
+            if (gm == null || gm.Player == null) return;
+            Step(ref playerTrail, ref playerTrailWait, (float)gm.Player.Hp / gm.Player.MaxHp, dt);
+            var e = gm.Battle != null ? gm.Battle.CurrentEnemy : null;
+            if (e == null) return;
+            if (e != trailEnemy) { trailEnemy = e; enemyTrail = 1f; enemyTrailWait = 0; }
+            Step(ref enemyTrail, ref enemyTrailWait, (float)e.Hp / e.MaxHp, dt);
+        }
+
+        static void Step(ref float trail, ref float wait, float value, float dt)
+        {
+            if (trail <= value) { trail = value; wait = TrailDelay; return; }   // лечение — сразу
+            if (wait > 0) { wait -= dt; return; }
+            trail = Mathf.Max(value, trail - TrailSpeed * dt);
+        }
+
         void DrawPlayerHp(float cx, float y, float s)
         {
             var player = gm.Player;
             string hp = $"{player.Hp}/{player.MaxHp}";
-            float barW = player.MaxHp * 4 * s;
-            float total = PixelFont.Width("HP", s) + 6 * s + barW + 6 * s + PixelFont.Width(hp, s);
+            float barW = player.MaxHp * 6;   // в пикселях игры: по 6 px на единицу здоровья
+            float total = PixelFont.Width("HP", s) + 7 * s + (barW + 4) * s + 6 * s + PixelFont.Width(hp, s);
             float x = cx - total / 2;
 
-            PixelFont.Draw("HP", x, y, s, Color.white);
-            x += PixelFont.Width("HP", s) + 6 * s;
-            Bar(new Rect(x, y, barW, 7 * s), AccentDark);
-            Bar(new Rect(x, y, barW * player.Hp / player.MaxHp, 7 * s), Accent);
-            x += barW + 6 * s;
+            PixelFont.Draw("HP", x, y, s, PlayerBar.light);
+            x += PixelFont.Width("HP", s) + 7 * s;
+            DrawHealthBar(x + 2 * s, y, barW, player.Hp, player.MaxHp, playerTrail, PlayerBar, s);
+            x += (barW + 4) * s + 6 * s;
             PixelFont.Draw(hp, x, y, s, Color.white);
         }
 
@@ -191,30 +224,177 @@ namespace BlackHeart
         {
             var e = gm.Battle.CurrentEnemy;
             if (e == null) return;
-            float right = Screen.width - (8 + PauseMenu.IconSize + 6) * s;   // правый угол занят иконкой паузы
-            float barW = Mathf.Min(e.MaxHp * 10, 60) * s;
-            Bar(new Rect(right - barW, 6 * s, barW, 7 * s), AccentDark);
-            Bar(new Rect(right - barW, 6 * s, barW * e.Hp / e.MaxHp, 7 * s), Green);
-            PixelFont.Draw(e.Definition.displayName, right - barW - 6 * s, 6 * s, s, Color.white, 1);
+            float right = Screen.width - (8 + PauseMenu.IconSize + 8) * s;   // правый угол занят иконкой паузы
+            float barW = Mathf.Clamp(e.MaxHp * 10, 30, 64);
+            DrawHealthBar(right - (barW + 2) * s, 6 * s, barW, e.Hp, e.MaxHp, trailEnemy == e ? enemyTrail : 1f, EnemyBar, s);
+            PixelFont.Draw(e.Definition.displayName, right - (barW + 4) * s - 6 * s, 6 * s, s, Color.white, 1);
         }
+
+        // Полоса здоровья в пиксельном стиле. (x, y) — левый верх заливки в экранных координатах,
+        // w — ширина заливки в пикселях игры. Снаружи: белая рамка 1 px и чёрный контур 1 px (выступают на 2 px),
+        // уголки срезаны; внутри: заливка 5 px с бликом и тенью, «след» урона, деления по единицам здоровья.
+        static void DrawHealthBar(float x, float y, float w, int value, int max, float trail, BarStyle st, float s)
+        {
+            const float H = 5;
+            y += 1 * s;   // по центру строки текста (7 px)
+            Rect R(float px, float py, float pw, float ph) => new Rect(x + px * s, y + py * s, pw * s, ph * s);
+
+            // контур и рамка со срезанными углами
+            Bar(R(-1, -2, w + 2, 1), Color.black); Bar(R(-1, H + 1, w + 2, 1), Color.black);
+            Bar(R(-2, -1, 1, H + 2), Color.black); Bar(R(w + 1, -1, 1, H + 2), Color.black);
+            Bar(R(0, -1, w, 1), Color.white); Bar(R(0, H, w, 1), Color.white);
+            Bar(R(-1, 0, 1, H), Color.white); Bar(R(w, 0, 1, H), Color.white);
+            Bar(R(-1, -1, 1, 1), Color.black); Bar(R(w, -1, 1, 1), Color.black);
+            Bar(R(-1, H, 1, 1), Color.black); Bar(R(w, H, 1, 1), Color.black);
+
+            Bar(R(0, 0, w, H), st.empty);
+            float f = Mathf.Round(w * Mathf.Clamp01((float)value / max));
+            float t = Mathf.Round(w * Mathf.Clamp01(trail));
+            if (t > f) Bar(R(f, 0, t - f, H), st.trail);
+            if (f > 0)
+            {
+                Bar(R(0, 0, f, H), st.fill);
+                Bar(R(0, 0, f, 1), st.light);
+                Bar(R(0, H - 1, f, 1), st.shade);
+                Bar(R(0, 1, 1, H - 2), st.light);
+            }
+            // деления по единицам здоровья, если они не слишком частые
+            float step = w / max;
+            if (step >= 3)
+                for (int i = 1; i < max; i++)
+                    Bar(R(Mathf.Round(i * step), 1, 1, H - 1), new Color(0, 0, 0, 0.45f));
+        }
+
+        // ---------- экран проигрыша ----------
+        // Всё в пикселях RT (320x180) через PixelUI. Фон — тёмная сетка, ползущая по диагонали, кровавое свечение
+        // снизу и поднимающиеся искры; сверху разбитое сердце, буквы GAME OVER падают по одной;
+        // затем фразы печатной машинкой и счёт в рамке как у поля боя.
+        static readonly Color Blood = new Color(0.27f, 0.02f, 0.05f);
+        static readonly Color DarkRed = new Color(0.77f, 0.11f, 0.14f);
+        static readonly Color Ember = new Color(1f, 0.5f, 0.2f);
+        static readonly Color Gold = new Color(1f, 0.82f, 0.25f);
+        static readonly Color Gray = new Color(0.55f, 0.55f, 0.59f);
+        Texture2D gridTex;
+
+        Texture2D GridTexture()
+        {
+            if (gridTex != null) return gridTex;
+            const int n = 40;
+            gridTex = new Texture2D(n, n, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat };
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    Color32 c = new Color32(6, 3, 8, 255);
+                    if (x % 10 == 0 && y % 10 == 0) c = new Color32(30, 12, 22, 255);
+                    if ((x == 0 && (y <= 1 || y >= n - 1)) || (y == 0 && (x <= 1 || x >= n - 1))) c = new Color32(52, 16, 30, 255);
+                    px[y * n + x] = c;
+                }
+            gridTex.SetPixels32(px);
+            gridTex.Apply(false);
+            return gridTex;
+        }
+
+        static float Hash(int i, int k) => Mathf.Repeat(Mathf.Sin(i * 127.1f + k * 311.7f) * 43758.5453f, 1f);
 
         void DrawGameOver(float s)
         {
-            float cx = Screen.width / 2f;
-            float top = Screen.height * 0.15f;
-            var fadeIn = new Color(1, 1, 1, Mathf.Clamp01(gameOverTime / 1.2f));
-            PixelFont.Draw("GAME", cx, top, 5 * s, fadeIn, 0);
-            PixelFont.Draw("OVER", cx, top + 40 * s, 5 * s, fadeIn, 0);
+            float t = gameOverTime;
+            float W = gm.Pixel.RtWidth, H = gm.Pixel.RtHeight, cx = W / 2;
 
-            float y = top + 90 * s;
-            PixelFont.Draw(Typed("* НЕ СДАВАЙСЯ...", gameOverTime - 1.2f), cx - 70 * s, y, s, Color.white);
-            PixelFont.Draw(Typed("* СОХРАНЯЙ РЕШИМОСТЬ!", gameOverTime - 2f), cx - 70 * s, y + 12 * s, s, Color.white);
-            if (gameOverTime > 3f)
+            // фон: сетка, свечение снизу и сверху ступенями
+            PixelUI.Box(0, 0, W, H, Color.black);
+            float off = Mathf.Floor(t * 3f) / 40f;
+            GUI.DrawTextureWithTexCoords(PixelUI.R(0, 0, W, H), GridTexture(), new Rect(off, off, W / 40f, H / 40f));
+            for (int i = 0; i < 8; i++)
+                PixelUI.Box(0, H - (i + 1) * 6, W, 6, new Color(Blood.r, Blood.g, Blood.b, 0.55f * (1 - i / 8f)));
+            for (int i = 0; i < 4; i++)
+                PixelUI.Box(0, i * 5, W, 5, new Color(0, 0, 0, 0.5f * (1 - i / 4f)));
+
+            // искры поднимаются снизу и мерцают
+            for (int i = 0; i < 28; i++)
             {
-                string rec = newRecord ? "НОВЫЙ РЕКОРД!" : $"РЕКОРД: {gm.Score.Best}";
-                PixelFont.Draw($"ОЧКИ: {gm.Score.Score}   {rec}", cx, y + 30 * s, s, Accent, 0);
-                if (Mathf.Repeat(Time.time, 1f) < 0.6f)
-                    PixelFont.Draw("НАЖМИ, ЧТОБЫ ПРОДОЛЖИТЬ", cx, y + 44 * s, s, Color.white, 0);
+                float speed = 6 + Hash(i, 1) * 12;
+                float y = H + 4 - Mathf.Repeat(t * speed + Hash(i, 2) * (H + 20), H + 20);
+                float x = Mathf.Floor(Hash(i, 3) * W + Mathf.Sin(t * 1.3f + i) * 3);
+                if (((int)(t * 8) + i) % 7 == 0) continue;
+                Color c = i % 3 == 0 ? Ember : i % 3 == 1 ? PlayerBar.fill : DarkRed;
+                float size = i % 5 == 0 ? 2 : 1;
+                PixelUI.Box(x, Mathf.Floor(y), size, size, c);
+            }
+
+            // разбитое сердце, слегка покачивается
+            float bob = Mathf.Repeat(t, 1.6f) < 0.8f ? 0 : 1;
+            PixelUI.Sprite(ArtIds.SoulBroken, cx - 16, 6 + bob, false, false, Color.white, 2);
+
+            // GAME OVER: буквы падают сверху ступенями, по очереди
+            const string title = "GAME OVER";
+            const float ts = 4, ty = 42;
+            float x0 = Mathf.Round(cx - PixelUI.Width(title, ts) / 2);
+            for (int i = 0; i < title.Length; i++)
+            {
+                string ch = title[i].ToString();
+                float cw = PixelUI.Width(ch, ts);
+                float p = Mathf.Clamp01((t - 0.2f - i * 0.07f) / 0.25f);
+                if (p > 0 && ch != " ")
+                {
+                    float k = Mathf.Ceil(p * 4) / 4;
+                    Vector2 g = gm.Pixel.RtToGui(x0, ty - (1 - k) * 24);
+                    float ps = gm.Pixel.PixelScale;
+                    PixelFont.Draw(ch, g.x + 2 * ps, g.y + 2 * ps, ts * ps, Blood);
+                    PixelFont.Draw(ch, g.x, g.y, ts * gm.Pixel.PixelScale, Color.white);
+                }
+                x0 += cw;
+            }
+
+            // разделитель с ромбом
+            if (t > 1.1f)
+            {
+                float yd = 86;
+                PixelUI.Box(60, yd, W - 120, 1, Blood);
+                PixelUI.Box(cx - 40, yd, 80, 1, DarkRed);
+                PixelUI.Diamond(cx, yd, PlayerBar.fill, Color.white);
+            }
+
+            // фразы — печатной машинкой, строки выровнены по общему левому краю
+            const string m1 = "* НЕ СДАВАЙСЯ...", m2 = "* СОХРАНЯЙ РЕШИМОСТЬ!";
+            float mx = Mathf.Round(cx - Mathf.Max(PixelUI.Width(m1), PixelUI.Width(m2)) / 2);
+            PixelUI.Text(Typed(m1, t - 1.3f), mx, 94, 1, Color.white, -1);
+            PixelUI.Text(Typed(m2, t - 2f), mx, 106, 1, Gray, -1);
+
+            // счёт в рамке: раскрывается ступенями
+            if (t > 3f)
+            {
+                int step = Mathf.Min(4, Mathf.FloorToInt((t - 3f) / 0.04f));
+                float pw = Mathf.Round(170 * (step + 1) / 5f / 2) * 2, ph = 18;
+                float px = cx - pw / 2, py = 126;
+                PixelUI.Box(px, py, pw, ph, Color.black);
+                PixelUI.Box(px + 2, py + 2, pw - 4, ph - 4, new Color(Blood.r, Blood.g, Blood.b, 0.6f));
+                PixelUI.BattleFrame(px, py, pw, ph, PixelUI.Accent);
+                if (step >= 4)
+                {
+                    if (newRecord)
+                    {
+                        Color c = Mathf.Repeat(Time.unscaledTime, 0.5f) < 0.25f ? Gold : Color.white;
+                        PixelUI.Text($"НОВЫЙ РЕКОРД: {gm.Score.Score}", cx, py + 6, 1, c);
+                    }
+                    else
+                    {
+                        PixelUI.Text($"ОЧКИ {gm.Score.Score}", cx - 7, py + 6, 1, Color.white, 1);
+                        PixelUI.Box(cx, py + 5, 1, 9, PixelUI.Accent);
+                        PixelUI.Text($"РЕКОРД {gm.Score.Best}", cx + 7, py + 6, 1, Gray, -1);
+                    }
+                }
+            }
+
+            // приглашение продолжить, мигает
+            if (t > 3.3f && Mathf.Repeat(Time.unscaledTime, 1f) < 0.65f)
+            {
+                string prompt = Application.isMobilePlatform ? "КОСНИСЬ, ЧТОБЫ ПРОДОЛЖИТЬ" : "НАЖМИ, ЧТОБЫ ПРОДОЛЖИТЬ";
+                float pw = PixelUI.Width(prompt);
+                PixelUI.Text(prompt, cx, 158, 1, Color.white);
+                PixelUI.Diamond(cx - pw / 2 - 8, 161, DarkRed, PlayerBar.fill);
+                PixelUI.Diamond(cx + pw / 2 + 8, 161, DarkRed, PlayerBar.fill);
             }
         }
 

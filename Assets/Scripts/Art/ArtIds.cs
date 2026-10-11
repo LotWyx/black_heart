@@ -38,5 +38,13 @@ namespace BlackHeart
         public const string HintMouse = "UI/HintMouse";     // 2 кадра: мышь, нажатая ЛКМ
         public const string HintCross = "UI/HintCross";
         public const string MenuOrnament = "UI/MenuOrnament";   // завиток у рамки выбранного пункта меню
+
+        // Детали рамки боя (Art/Source/gen_box.lua); *Accent красятся в цвет внутренней линии
+        public const string BoxCorner = "UI/BoxCorner";
+        public const string BoxCornerAccent = "UI/BoxCornerAccent";
+        public const string BoxNotchH = "UI/BoxNotchH";
+        public const string BoxNotchHAccent = "UI/BoxNotchHAccent";
+        public const string BoxNotchV = "UI/BoxNotchV";
+        public const string BoxNotchVAccent = "UI/BoxNotchVAccent";
     }
 }
