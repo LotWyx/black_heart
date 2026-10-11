@@ -1,0 +1,49 @@
+# Unity: генерируется редактором
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# .meta-файлы ассетов обязательно храним
+!/[Aa]ssets/**/*.meta
+
+# Файлы IDE и решений (Unity пересоздаёт их сам)
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Сборки и прочее
+sysinfo.txt
+*.apk
+*.aab
+*.unitypackage
+*.app
+crashlytics-build.properties
+*.tmp
+
+# Скриншоты инструментов и локальные резервные копии
+/Captures/
+/_OldPrototype_backup/
+/_ArtBackup_before_aseprite/

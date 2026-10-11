@@ -1,0 +1,42 @@
+namespace BlackHeart
+{
+    // Идентификаторы спрайтов = пути внутри Assets/Resources/Art/ (без расширения).
+    // Чтобы заменить графику, положите свой PNG по тому же пути.
+    public static class ArtIds
+    {
+        public const string Soul = "Player/Soul";
+        public const string SoulBroken = "Player/SoulBroken";
+        public const string SoulShard = "Player/SoulShard";
+
+        public const string Bullet = "Projectiles/Bullet";
+        public const string BulletCrack = "Projectiles/BulletCrack";
+
+        public const string BoomCircle = "FX/BoomCircle";
+
+        public const string BackgroundBattle = "Background/BloodMoon";   // 3 кадра 320x180
+        public const string BackgroundSunset = "Background/Sunset";      // запасной процедурный фон (PixelArt)
+        public const string BackgroundMenu = "Background/MenuMoon";   // 3 кадра 320x180
+
+        // Анимации (горизонтальные полоски кадров)
+        public const string SoulPulse = "Player/Soul_pulse";
+        public const string SoulHit = "Player/Soul_hit";
+        public const string SoulShardSet = "Player/SoulShard_set";
+        public const string BulletSpin = "Projectiles/Bullet_spin";
+        public const string BulletSpawn = "Projectiles/Bullet_spawn";
+        public const string BulletDespawn = "Projectiles/Bullet_despawn";
+        public const string Sparks = "FX/Sparks";
+
+        // Анимации врага: <spriteId>_idle, _windup, _hurt, _laugh, _defeat
+        public static string EnemyAnim(string spriteId, string anim) => spriteId + "_" + anim;
+
+        public const string EnemyGhost = "Enemies/Ghost";
+        public const string EnemyEye = "Enemies/Eye";
+        public const string EnemySkull = "Enemies/Skull";
+        public const string EnemyMoonface = "Enemies/Moonface";   // босс обучения
+
+        // Подсказки обучения
+        public const string HintFinger = "UI/HintFinger";   // 2 кадра: палец, касание
+        public const string HintMouse = "UI/HintMouse";     // 2 кадра: мышь, нажатая ЛКМ
+        public const string HintCross = "UI/HintCross";
+    }
+}
