@@ -6,7 +6,7 @@ namespace BlackHeart
     // прямоугольники, рамки, спрайты, ромбы и рамка «как у поля боя». Используют пауза и экран проигрыша.
     public static class PixelUI
     {
-        public static readonly Color Accent = new Color(0.86f, 0.25f, 0.42f);
+        public static readonly Color Accent = new Color(0.91f, 0.14f, 0.14f);   // #E82424, как внутренняя линия рамки боя
 
         static PixelCamera Pixel => GameManager.I.Pixel;
         public static float Scale => Pixel.PixelScale;

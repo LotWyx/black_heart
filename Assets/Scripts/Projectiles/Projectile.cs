@@ -68,8 +68,12 @@ namespace BlackHeart
             if (!spinning && Time.frameCount > spawnFrame)
             {
                 spinning = true;
-                anim.Play(ArtLibrary.Frames(ArtIds.BulletSpin, ArtIds.Bullet), SpinFrameTime, true, null,
-                    reverseSpin ? ReverseSpin : null);
+                // Цветной спрайт своего типа; если его нет — общий серый, перекрашенный в цвет типа
+                string id = ArtIds.BulletOf(Type);
+                bool typed = ArtLibrary.Has(id + "_spin");
+                sr.color = typed ? Color.white : Color;
+                anim.Play(typed ? ArtLibrary.Frames(id + "_spin", id) : ArtLibrary.Frames(ArtIds.BulletSpin, ArtIds.Bullet),
+                    SpinFrameTime, true, null, reverseSpin ? ReverseSpin : null);
             }
 
             var heart = gm.Player;
@@ -148,8 +152,9 @@ namespace BlackHeart
             ArtLibrary.Halves(sr.sprite, out var left, out var right);
             float rot = Mathf.Atan2(cutDir.y, cutDir.x) * Mathf.Rad2Deg - 90f;
             Vector2 side = Quaternion.Euler(0, 0, rot) * Vector2.right;
-            Debris.Spawn(left, Position, rot, 1f, Color, -side * 3f, Random.Range(-360f, -120f), 0.6f, 6f, false, 9);
-            Debris.Spawn(right, Position, rot, 1f, Color, side * 3f, Random.Range(120f, 360f), 0.6f, 6f, false, 9);
+            Color tint = sr.color;   // цветные спрайты не перекрашиваем повторно
+            Debris.Spawn(left, Position, rot, 1f, tint, -side * 3f, Random.Range(-360f, -120f), 0.6f, 6f, false, 9);
+            Debris.Spawn(right, Position, rot, 1f, tint, side * 3f, Random.Range(120f, 360f), 0.6f, 6f, false, 9);
             Debris.Burst(Position, Color, 5, 4f);
         }
 

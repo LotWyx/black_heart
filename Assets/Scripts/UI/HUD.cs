@@ -6,19 +6,19 @@ namespace BlackHeart
     // Интерфейс боя на IMGUI с пиксельным шрифтом. Получает данные через GameEvents.
     public class HUD : MonoBehaviour
     {
-        // Основной акцент — нежный пурпурно-красный
-        static readonly Color Accent = new Color(0.86f, 0.25f, 0.42f);
+        // Основной акцент — красный, как внутренняя линия рамки боя
+        static readonly Color Accent = PixelUI.Accent;
         static readonly Color Red = new Color(1f, 0.15f, 0.15f);
         static readonly Color Green = new Color(0.2f, 1f, 0.3f);
 
         // Цвета полос здоровья: основа, блик сверху, тень снизу, пустая часть, «след» урона
         struct BarStyle { public Color fill, light, shade, empty, trail; }
-        static readonly BarStyle PlayerBar = new BarStyle
+        static readonly BarStyle RedBar = new BarStyle
         {
             fill = new Color(0.9f, 0.1f, 0.14f), light = new Color(1f, 0.45f, 0.4f), shade = new Color(0.55f, 0.03f, 0.08f),
             empty = new Color(0.16f, 0.02f, 0.05f), trail = new Color(1f, 0.85f, 0.75f)
         };
-        static readonly BarStyle EnemyBar = new BarStyle
+        static readonly BarStyle GreenBar = new BarStyle
         {
             fill = new Color(0.2f, 0.85f, 0.3f), light = new Color(0.6f, 1f, 0.55f), shade = new Color(0.08f, 0.45f, 0.18f),
             empty = new Color(0.05f, 0.14f, 0.08f), trail = new Color(1f, 0.95f, 0.7f)
@@ -213,9 +213,9 @@ namespace BlackHeart
             float total = PixelFont.Width("HP", s) + 7 * s + (barW + 4) * s + 6 * s + PixelFont.Width(hp, s);
             float x = cx - total / 2;
 
-            PixelFont.Draw("HP", x, y, s, PlayerBar.light);
+            PixelFont.Draw("HP", x, y, s, Color.white);
             x += PixelFont.Width("HP", s) + 7 * s;
-            DrawHealthBar(x + 2 * s, y, barW, player.Hp, player.MaxHp, playerTrail, PlayerBar, s);
+            DrawHealthBar(x + 2 * s, y, barW, player.Hp, player.MaxHp, playerTrail, GreenBar, s);   // игрок — зелёная
             x += (barW + 4) * s + 6 * s;
             PixelFont.Draw(hp, x, y, s, Color.white);
         }
@@ -226,7 +226,7 @@ namespace BlackHeart
             if (e == null) return;
             float right = Screen.width - (8 + PauseMenu.IconSize + 8) * s;   // правый угол занят иконкой паузы
             float barW = Mathf.Clamp(e.MaxHp * 10, 30, 64);
-            DrawHealthBar(right - (barW + 2) * s, 6 * s, barW, e.Hp, e.MaxHp, trailEnemy == e ? enemyTrail : 1f, EnemyBar, s);
+            DrawHealthBar(right - (barW + 2) * s, 6 * s, barW, e.Hp, e.MaxHp, trailEnemy == e ? enemyTrail : 1f, RedBar, s);   // враг — красная
             PixelFont.Draw(e.Definition.displayName, right - (barW + 4) * s - 6 * s, 6 * s, s, Color.white, 1);
         }
 
@@ -318,7 +318,7 @@ namespace BlackHeart
                 float y = H + 4 - Mathf.Repeat(t * speed + Hash(i, 2) * (H + 20), H + 20);
                 float x = Mathf.Floor(Hash(i, 3) * W + Mathf.Sin(t * 1.3f + i) * 3);
                 if (((int)(t * 8) + i) % 7 == 0) continue;
-                Color c = i % 3 == 0 ? Ember : i % 3 == 1 ? PlayerBar.fill : DarkRed;
+                Color c = i % 3 == 0 ? Ember : i % 3 == 1 ? RedBar.fill : DarkRed;
                 float size = i % 5 == 0 ? 2 : 1;
                 PixelUI.Box(x, Mathf.Floor(y), size, size, c);
             }
@@ -353,7 +353,7 @@ namespace BlackHeart
                 float yd = 86;
                 PixelUI.Box(60, yd, W - 120, 1, Blood);
                 PixelUI.Box(cx - 40, yd, 80, 1, DarkRed);
-                PixelUI.Diamond(cx, yd, PlayerBar.fill, Color.white);
+                PixelUI.Diamond(cx, yd, RedBar.fill, Color.white);
             }
 
             // фразы — печатной машинкой, строки выровнены по общему левому краю
@@ -393,8 +393,8 @@ namespace BlackHeart
                 string prompt = Application.isMobilePlatform ? "КОСНИСЬ, ЧТОБЫ ПРОДОЛЖИТЬ" : "НАЖМИ, ЧТОБЫ ПРОДОЛЖИТЬ";
                 float pw = PixelUI.Width(prompt);
                 PixelUI.Text(prompt, cx, 158, 1, Color.white);
-                PixelUI.Diamond(cx - pw / 2 - 8, 161, DarkRed, PlayerBar.fill);
-                PixelUI.Diamond(cx + pw / 2 + 8, 161, DarkRed, PlayerBar.fill);
+                PixelUI.Diamond(cx - pw / 2 - 8, 161, DarkRed, RedBar.fill);
+                PixelUI.Diamond(cx + pw / 2 + 8, 161, DarkRed, RedBar.fill);
             }
         }
 

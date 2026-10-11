@@ -22,7 +22,8 @@ namespace BlackHeart
         public event Action OnLaugh;
         public event Action OnDefeated;
 
-        const float IdleFrameTime = 0.4f;
+        const float IdleFrameTime = 0.4f;        // покой из 2 кадров (база + сдвиг)
+        const float IdleFrameTimeLong = 0.22f;   // покой из 3+ поз — кадры чаще, движение плавнее
         const float WindupFrameTime = 0.1f;
         const float FlashFrameTime = 0.05f;
         const float LaughFrameTime = 0.1f;
@@ -83,7 +84,7 @@ namespace BlackHeart
         void PlayIdle()
         {
             busy = false;
-            anim.Play(idle, IdleFrameTime);
+            anim.Play(idle, idle.Length > 2 ? IdleFrameTimeLong : IdleFrameTime);
         }
 
         static float EaseOut(float k) => 1f - (1f - k) * (1f - k);
@@ -120,7 +121,7 @@ namespace BlackHeart
         // Вылет вверх за экран
         public IEnumerator FlyUp(float worldY)
         {
-            anim.Play(idle, IdleFrameTime);
+            anim.Play(idle, idle.Length > 2 ? IdleFrameTimeLong : IdleFrameTime);
             float startY = animOffset.y, endY = worldY - home.y;
             for (float t = 0; t < 0.5f; t += Time.deltaTime)
             {

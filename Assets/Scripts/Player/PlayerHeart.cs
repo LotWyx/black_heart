@@ -25,8 +25,9 @@ namespace BlackHeart
         float invuln;
         bool hidden, broken;
 
-        static readonly int[] PulseSequence = { 0, 1, 0, 2 };   // база → вдох → база → выдох
-        const float PulseFrameTime = 0.4f, HitStepTime = 0.1f;
+        // Сердцебиение «тук-тук»: удар → затухание, ещё удар → затухание, затем пауза (≈ 1 удар в секунду)
+        static readonly int[] PulseSequence = { 1, 2, 0, 1, 2, 0, 0, 0, 0, 0, 0, 0 };
+        const float PulseFrameTime = 0.08f, HitStepTime = 0.1f;
 
         void Awake()
         {

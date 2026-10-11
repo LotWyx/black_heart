@@ -14,7 +14,7 @@ namespace BlackHeart
         static readonly string[] Items = { "ПРОДОЛЖИТЬ", "ГЛАВНОЕ МЕНЮ" };
 
         public const float IconSize = 6;    // ширина иконки паузы (пиксели низкого разрешения)
-        static readonly Color Accent = new Color(0.86f, 0.25f, 0.42f);
+        static readonly Color Accent = PixelUI.Accent;
         static readonly Color Red = new Color(0.91f, 0.14f, 0.14f);
         static readonly Color DarkRed = new Color(0.77f, 0.11f, 0.14f);
         static readonly Color Blood = new Color(0.27f, 0.02f, 0.05f);

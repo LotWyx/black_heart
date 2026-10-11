@@ -1,4 +1,4 @@
--- Пуля (10x10, перекрашивается кодом), трещины, искры, круг «бум-круга»
+-- Пули (10x10): общая серая (перекрашивается кодом, запасная) и цветные по типам; трещины, искры, круг «бум-круга»
 local L = dofile("/home/lotwy/black_heart/Art/Source/bh_lib.lua")
 
 -- Круглая пуля: силуэт и тень постоянны, вращение видно по 4 серым меткам внутри
@@ -18,6 +18,91 @@ end
 local spin = { bullet(0), bullet(22.5), bullet(45), bullet(67.5) }
 L.save("Projectiles/Bullet", { spin[1] })
 L.save("Projectiles/Bullet_spin", spin, { 0.06 })
+
+-- ---------- цветные пули по типам (10x10, 4 кадра вращения), уже в цвете — код их не перекрашивает ----------
+local function hex(h) return { tonumber(h:sub(2, 3), 16), tonumber(h:sub(4, 5), 16), tonumber(h:sub(6, 7), 16) } end
+for k, v in pairs({
+  wb1 = "#5a5a72", wb2 = "#a8a8c0", wb3 = "#e4e4f0", wb4 = "#ffffff",   -- белая жемчужина
+  pb1 = "#3a145e", pb2 = "#6e2aa8", pb3 = "#a65ae0", pb4 = "#e2c2ff",   -- фиолетовая
+  bb1 = "#0e2a66", bb2 = "#1e5ec0", bb3 = "#4aa8ff", bb4 = "#c8ecff",   -- синий кристалл
+}) do L.COLORS[k] = hex(v) end
+local BAYER = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 }
+local function dither(x, y, d) return (BAYER[(y % 4) * 4 + (x % 4) + 1] + 0.5) / 16 < d end
+
+-- Шар: тон по диагонали (свет сверху-слева) с дизерингом на переходах, блик 2 px
+local function orb(r)
+  local g = L.grid(10, 10)
+  for y = 1, 8 do for x = 1, 8 do
+    local dx, dy = x + 0.5 - 5, y + 0.5 - 5
+    if dx * dx + dy * dy <= 16 then
+      local t = (dx + dy) / 8 + 0.5   -- 0 — верх-лево, 1 — низ-право
+      local c = r[3]
+      if t > 0.62 then c = dither(x, y, (t - 0.62) / 0.25) and r[1] or r[2] end
+      if t > 0.4 and t <= 0.62 then c = dither(x, y, (t - 0.4) / 0.22) and r[2] or r[3] end
+      L.set(g, x, y, c)
+    end
+  end end
+  L.set(g, 3, 3, r[4]); L.set(g, 4, 3, r[4]); L.set(g, 3, 4, r[4])
+  return g
+end
+
+-- Белая: жемчужина с вращающейся искоркой-крестом
+local function whiteBullet(a)
+  local g = orb({ "wb1", "wb2", "wb3", "wb4" })
+  local rot = math.rad(a)
+  for i = 0, 3 do
+    local ang = rot + i * math.pi / 2
+    L.set(g, math.floor(5 + math.cos(ang) * 2.4), math.floor(5 + math.sin(ang) * 2.4), "wb2")
+  end
+  return L.outline(g, 1, "K")
+end
+
+-- Фиолетовая: шар со швом-трещиной посередине (подсказка: расколется на две)
+local function purpleBullet(a)
+  local g = orb({ "pb1", "pb2", "pb3", "pb4" })
+  local rot = math.rad(a + 90)
+  local cx, cy = math.cos(rot), math.sin(rot)
+  for t = -3.5, 3.5, 0.5 do
+    local x, y = math.floor(5 + cx * t + 0.0), math.floor(5 + cy * t + 0.0)
+    if L.get(g, x, y) then L.set(g, x, y, "pb1") end
+  end
+  L.set(g, 3, 3, "pb4"); L.set(g, 4, 3, "pb4")
+  return L.outline(g, 1, "K")
+end
+
+-- Синяя: граненый кристалл-ромб (рубить нельзя); блик бегает по граням
+local BLUE = {
+  "...a...",
+  "..abc..",
+  ".abbcc.",
+  "abbbccd",
+  ".bbbcd.",
+  "..bcd..",
+  "...d...",
+}
+local function blueBullet(f)
+  local g = L.grid(10, 10)
+  local map = { a = "bb4", b = "bb3", c = "bb2", d = "bb1" }
+  for y, row in ipairs(BLUE) do for x = 1, #row do
+    local ch = row:sub(x, x)
+    if ch ~= "." then L.set(g, x, y, map[ch]) end   -- со сдвигом (1, 1): контур помещается в 10x10
+  end end
+  -- блик пробегает по левой верхней грани
+  local glint = { { 3, 3 }, { 4, 2 }, { 2, 4 }, { 3, 4 } }
+  local p = glint[f + 1]
+  L.set(g, p[1], p[2], "bb4")
+  return L.outline(g, 1, "K")
+end
+
+local typed = {
+  White = { whiteBullet(0), whiteBullet(22.5), whiteBullet(45), whiteBullet(67.5) },
+  Purple = { purpleBullet(0), purpleBullet(45), purpleBullet(90), purpleBullet(135) },
+  Blue = { blueBullet(0), blueBullet(1), blueBullet(2), blueBullet(3) },
+}
+for name, frames in pairs(typed) do
+  L.save("Projectiles/Bullet" .. name, { frames[1] })
+  L.save("Projectiles/Bullet" .. name .. "_spin", frames, { 0.06 })
+end
 
 -- Вспышка появления: белый квадрат 6x6 со срезанными углами + контур
 local spawn = L.grid(10, 10)

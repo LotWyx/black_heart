@@ -231,8 +231,13 @@ end
 -- build(state) -> сетка с контуром, meta { eyes = {{x, y}, ...} }
 function S.animations(name, build, opts)
   local base, meta = build({})
-  local idleGrid = build(opts.idle or {})
-  local idle = { base, L.shift(idleGrid, 0, -1) }
+  local idle
+  if opts.idleFrames then   -- своя анимация покоя из нескольких поз
+    idle = {}
+    for i, st in ipairs(opts.idleFrames) do idle[i] = (build(st)) end
+  else
+    idle = { base, L.shift((build(opts.idle or {})), 0, -1) }
+  end
 
   local windup = {
     withOuter(base, "O"),
@@ -244,7 +249,8 @@ function S.animations(name, build, opts)
 
   local laugh = {}
   for i, st in ipairs(opts.laugh) do
-    laugh[i] = L.shift((build(st)), 0, ({ 0, -2, 0 })[i] or 0)
+    local lift = opts.laughShift == false and 0 or (({ 0, -2, 0 })[i] or 0)   -- позы смеха могут подпрыгивать сами
+    laugh[i] = L.shift((build(st)), 0, lift)
   end
 
   local minx, miny, maxx, maxy = L.bounds(base)

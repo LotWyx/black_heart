@@ -23,7 +23,7 @@ namespace BlackHeart
         public int resizeSteps = 4;              // изменение размера — ступенями, не плавно
         public float introStepTime = 0.05f;
 
-        static readonly Color Accent = new Color(0.86f, 0.25f, 0.42f);     // #DB406B
+        static readonly Color Accent = new Color(0.91f, 0.14f, 0.14f);     // #E82424
         static readonly Color Telegraph = new Color(1f, 0.54f, 0.12f);    // #FF8A1E
         static readonly Color TimeStop = new Color(0.91f, 0.91f, 0.94f);  // #E8E8F0
 
