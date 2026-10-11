@@ -2,11 +2,11 @@ using UnityEngine;
 
 namespace BlackHeart
 {
-    // Фон боя: кровавая луна над морем (3 кадра: бегут волны, стекают капли, мигает маяк).
+    // Фон боя: готический зал с витражным окном (3 кадра: мерцают свечи, рябит отражение на полу).
     // Виден только за рамкой. Растягивается на всю видимую область (целым множителем, если возможно).
     public class BattleBackground : MonoBehaviour
     {
-        public float frameTime = 0.25f;
+        public float frameTime = 0.18f;
 
         SpriteRenderer sr;
         SpriteAnimator anim;

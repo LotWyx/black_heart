@@ -2,21 +2,29 @@ using UnityEngine;
 
 namespace BlackHeart
 {
-    // Саундтрек игры: «Final Form» (Resources/Audio/Music/FinalForm), звучит в меню и в бою.
-    // Другой трек — назначьте AudioClip в поле track. Если файла нет — синтезированная чиптюн-петля.
+    // Музыка: в главном меню и на экране проигрыша — «Music Box of Souls» (Resources/Audio/Music/MusicBoxOfSouls),
+    // в бою — «Cathedral of Blades» (Resources/Audio/Music/CathedralOfBlades). Смена трека — плавным перекрёстным затуханием.
+    // Другие треки — назначьте AudioClip в полях. Если боевого файла нет — синтезированная чиптюн-петля.
     public class MusicPlayer : MonoBehaviour
     {
-        public AudioClip track;
-        const string SoundtrackPath = "Audio/Music/FinalForm";
+        public AudioClip battleTrack, menuTrack;
+        const string BattlePath = "Audio/Music/CathedralOfBlades";
+        const string MenuPath = "Audio/Music/MusicBoxOfSouls";
+        const float FadeTime = 1.2f;   // секунды; в реальном времени, чтобы работало и на паузе
 
-        AudioSource source;
+        readonly AudioSource[] sources = new AudioSource[2];
+        int active;                    // источник, который сейчас звучит или нарастает
+        float fade = 1f;               // прогресс перехода 0..1
         static AudioClip generated;
 
         void Awake()
         {
-            source = gameObject.AddComponent<AudioSource>();
-            source.loop = true;
-            source.playOnAwake = false;
+            for (int i = 0; i < 2; i++)
+            {
+                sources[i] = gameObject.AddComponent<AudioSource>();
+                sources[i].loop = true;
+                sources[i].playOnAwake = false;
+            }
         }
 
         void OnEnable() => GameSettings.OnChanged += ApplyVolume;
@@ -24,18 +32,46 @@ namespace BlackHeart
 
         void Start()
         {
-            if (track == null) track = Resources.Load<AudioClip>(SoundtrackPath);
-            if (track == null)
+            if (battleTrack == null) battleTrack = Resources.Load<AudioClip>(BattlePath);
+            if (battleTrack == null)
             {
                 if (generated == null) generated = MusicSynth.BuildSunsetLoop();
-                track = generated;
+                battleTrack = generated;
             }
-            source.clip = track;
-            ApplyVolume();
-            source.Play();
+            if (menuTrack == null) menuTrack = Resources.Load<AudioClip>(MenuPath);
+            if (menuTrack == null) menuTrack = battleTrack;
         }
 
-        void ApplyVolume() => source.volume = GameSettings.MusicVolume;
+        void Update()
+        {
+            var gm = GameManager.I;
+            if (gm == null) return;
+            AudioClip want = gm.CurrentState == GameManager.State.Playing ? battleTrack
+                           : gm.CurrentState == GameManager.State.Dying ? sources[active].clip   // душа трескается — не перебиваем
+                           : menuTrack;
+            if (want != null && sources[active].clip != want) SwitchTo(want);
+            if (fade < 1f) fade = Mathf.Min(1f, fade + Time.unscaledDeltaTime / FadeTime);
+            ApplyVolume();
+        }
+
+        void SwitchTo(AudioClip clip)
+        {
+            bool silent = sources[active].clip == null;
+            active = 1 - active;
+            sources[active].clip = clip;
+            sources[active].Play();
+            fade = silent ? 1f : 0f;   // самый первый трек — сразу, без затухания
+        }
+
+        void ApplyVolume()
+        {
+            float v = GameSettings.MusicVolume;
+            var current = sources[active];
+            var previous = sources[1 - active];
+            current.volume = v * fade;
+            previous.volume = v * (1f - fade);
+            if (fade >= 1f && previous.isPlaying) previous.Stop();
+        }
     }
 
     static class MusicSynth

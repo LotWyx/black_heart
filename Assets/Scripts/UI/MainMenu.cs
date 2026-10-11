@@ -59,7 +59,7 @@ namespace BlackHeart
             Go(Page.Main, 0, false);
             bg.enabled = true;
             bg.flipX = true;   // луна справа, меню слева на тёмных облаках
-            bgAnim.Play(ArtLibrary.Frames(ArtIds.BackgroundBattle, null, 320), 0.25f);
+            bgAnim.Play(ArtLibrary.Frames(ArtIds.BackgroundMenu, null, 320), 0.25f);
         }
 
         public void Hide()

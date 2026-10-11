@@ -170,7 +170,7 @@ namespace BlackHeart
             if (!tutorial && phase == BattlePhase.Attack)
             {
                 if (Mathf.Repeat(Time.time, 0.5f) < 0.35f)
-                    PixelFont.Draw("РУБИ ВРАГА!", cx, y2, s, Accent, 0);
+                    PixelFont.Draw("АТАКУЙ ВРАГА!", cx, y2, s, Red, 0);
                 float w = 60 * s * Mathf.Clamp01(gm.Battle.AttackTimeLeft / gm.Battle.attackWindow);
                 Bar(new Rect(cx - w / 2, y2 + 10 * s, w, 2 * s), Color.white);
             }
