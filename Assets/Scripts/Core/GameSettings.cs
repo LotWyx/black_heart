@@ -18,23 +18,26 @@ namespace BlackHeart
         {
             if (loaded) return;
             loaded = true;
-            master = PlayerPrefs.GetFloat(MasterKey, 1f);
-            music = PlayerPrefs.GetFloat(MusicKey, 0.6f);
+            master = Step(PlayerPrefs.GetFloat(MasterKey, 1f));
+            music = Step(PlayerPrefs.GetFloat(MusicKey, 0.6f));
         }
 
         // Общая громкость (все звуки и музыка)
         public static float MasterVolume
         {
             get { Load(); return master; }
-            set { Load(); master = Mathf.Clamp01(value); Save(); }
+            set { Load(); master = Step(value); Save(); }
         }
 
         // Громкость музыки (поверх общей)
         public static float MusicVolume
         {
             get { Load(); return music; }
-            set { Load(); music = Mathf.Clamp01(value); Save(); }
+            set { Load(); music = Step(value); Save(); }
         }
+
+        // Громкость меняется шагами по 10% — как деления шкалы в настройках
+        static float Step(float v) => Mathf.Round(Mathf.Clamp01(v) * 10f) / 10f;
 
         static void Save()
         {

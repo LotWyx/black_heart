@@ -3,7 +3,8 @@ using UnityEngine;
 
 namespace BlackHeart
 {
-// Простой пиксельный шрифт 5x7 (латиница, кириллица, цифры) для IMGUI.
+// Текст игры. Основной шрифт — Hollowetica (пиксельный TTF из Resources/Fonts: 8 px на em,
+// заглавные 7 px) рисуется без сглаживания целыми пикселями. Если шрифта нет — запасной битмап 5x7.
 public static class PixelFont
 {
     const int W = 5, H = 7, Advance = 6;
@@ -115,9 +116,55 @@ public static class PixelFont
         return tex;
     }
 
-    public static float Width(string text, float scale) => (text.Length * Advance - 1) * scale;
+    // ---------- Hollowetica ----------
+    const string FontPath = "Fonts/Hollowetica";
+    const float EmPixels = 8f;          // пикселей шрифта на em
+    const float CapOffset = 2f;         // от верха строки до верха заглавных (ascent 9 − cap 7)
+    const float LineHeight = 12f;
 
-    // align: -1 — по левому краю от x, 0 — по центру, 1 — по правому краю
+    static Font font;
+    static bool fontLoaded;
+    static GUIStyle style;
+
+    static Font MainFont
+    {
+        get
+        {
+            if (!fontLoaded || font == null)
+            {
+                fontLoaded = true;
+                font = Resources.Load<Font>(FontPath);
+            }
+            return font;
+        }
+    }
+
+    static GUIStyle StyleFor(float scale)
+    {
+        if (style == null || style.font != MainFont)
+        {
+            style = new GUIStyle
+            {
+                font = MainFont,
+                alignment = TextAnchor.UpperLeft,
+                wordWrap = false,
+                clipping = TextClipping.Overflow,
+                padding = new RectOffset(0, 0, 0, 0),
+                margin = new RectOffset(0, 0, 0, 0),
+            };
+        }
+        style.fontSize = Mathf.Max(1, Mathf.RoundToInt(EmPixels * scale));
+        return style;
+    }
+
+    public static float Width(string text, float scale)
+    {
+        text = text.ToUpperInvariant();
+        if (MainFont == null) return (text.Length * Advance - 1) * scale;
+        return Mathf.Round(StyleFor(scale).CalcSize(new GUIContent(text)).x);
+    }
+
+    // y — верх заглавных букв; align: -1 — по левому краю от x, 0 — по центру, 1 — по правому краю
     public static void Draw(string text, float x, float y, float scale, Color color, int align = -1)
     {
         text = text.ToUpperInvariant();
@@ -126,6 +173,16 @@ public static class PixelFont
         else if (align > 0) x -= w;
         x = Mathf.Round(x);
         y = Mathf.Round(y);
+
+        if (MainFont != null)
+        {
+            var st = StyleFor(scale);
+            var tex = MainFont.material != null ? MainFont.material.mainTexture : null;
+            if (tex != null) tex.filterMode = FilterMode.Point;   // без размытия пикселей
+            st.normal.textColor = color;
+            GUI.Label(new Rect(x, y - CapOffset * scale, w + scale, LineHeight * scale), text, st);
+            return;
+        }
 
         var prev = GUI.color;
         GUI.color = color;

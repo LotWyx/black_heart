@@ -15,7 +15,6 @@ namespace BlackHeart
 
         public const string BackgroundBattle = "Background/BloodMoon";   // 3 кадра 320x180
         public const string BackgroundSunset = "Background/Sunset";      // запасной процедурный фон (PixelArt)
-        public const string BackgroundMenu = "Background/MenuMoon";   // 3 кадра 320x180
 
         // Анимации (горизонтальные полоски кадров)
         public const string SoulPulse = "Player/Soul_pulse";

@@ -18,7 +18,8 @@ namespace BlackHeart
         public float playerInvulnTime = 0.4f;
 
         public State CurrentState { get; private set; }
-        public bool IsPlaying => CurrentState == State.Playing;
+        public bool IsPlaying => CurrentState == State.Playing && !Paused;
+        public bool Paused { get; private set; }
 
         public PixelCamera Pixel { get; private set; }
         public ScoreKeeper Score { get; private set; }
@@ -58,6 +59,7 @@ namespace BlackHeart
             Ensure<MusicPlayer>();
             Menu = Ensure<MainMenu>();
             Tutorial = Ensure<TutorialController>();
+            Ensure<PauseMenu>();
 
             Slicer.OnSlice += HandleSlice;
             GameEvents.OnPlayerDied += HandlePlayerDied;
@@ -84,6 +86,7 @@ namespace BlackHeart
         // Главное меню: бой остановлен, поле и душа скрыты
         public void ShowMenu()
         {
+            SetPausedInternal(false);
             StopAllCoroutines();
             Tutorial.Abort();
             Battle.Stop();
@@ -102,6 +105,7 @@ namespace BlackHeart
 
         public void StartGame(bool withTutorial)
         {
+            SetPausedInternal(false);
             Menu.Hide();
             StopAllCoroutines();
             Tutorial.Abort();
@@ -147,6 +151,26 @@ namespace BlackHeart
             stateTime += Time.deltaTime;
             if (CurrentState == State.GameOver && stateTime > 3f && Slicer.PressedThisFrame)
                 ShowMenu();
+        }
+
+        // Пауза: время стоит, бой и обучение не реагируют на ввод
+        public void SetPaused(bool paused)
+        {
+            if (CurrentState != State.Playing) return;
+            SetPausedInternal(paused);
+        }
+
+        void SetPausedInternal(bool paused)
+        {
+            Paused = paused;
+            Time.timeScale = paused ? 0f : 1f;
+        }
+
+        // Выход из боя в главное меню (рекорд засчитывается)
+        public void QuitToMenu()
+        {
+            Score.CommitBest();
+            ShowMenu();
         }
 
         void HandlePlayerDied() => StartCoroutine(GameOverSequence());

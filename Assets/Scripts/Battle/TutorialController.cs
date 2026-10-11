@@ -291,6 +291,7 @@ namespace BlackHeart
 
         bool Tapped()
         {
+            if (gm.Paused) return false;
             var kb = Keyboard.current;
             return gm.Slicer.PressedThisFrame ||
                    (kb != null && (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame));
@@ -463,11 +464,12 @@ namespace BlackHeart
         {
             Vector2 c = gm.Pixel.WorldToGui(moonface.Position);
             float left = c.x + 32 * s, top = c.y - 28 * s;   // ниже полоски HP врага
-            int maxChars = Mathf.Clamp(Mathf.FloorToInt((Screen.width - left - 12 * s) / (6 * s)) - 2, 8, 24);
-            var lines = Wrap(speech, maxChars);
-            int longest = 0;
-            foreach (var line in lines) longest = Mathf.Max(longest, line.Length);
-            float w = (longest * 6 - 1 + 10) * s, h = (lines.Count * 10 - 3 + 10) * s;
+            // Перенос по реальной ширине текста (шрифт пропорциональный)
+            float maxWidth = Mathf.Clamp(Screen.width - left - 22 * s, 60 * s, 150 * s);
+            var lines = Wrap(speech, maxWidth, s);
+            float longest = 0;
+            foreach (var line in lines) longest = Mathf.Max(longest, PixelFont.Width(line, s));
+            float w = longest + 10 * s, h = (lines.Count * 10 - 3 + 10) * s;
 
             Box(new Rect(left + s, top, w - 2 * s, h), Ink);
             Box(new Rect(left, top + s, w, h - 2 * s), Ink);
@@ -528,14 +530,14 @@ namespace BlackHeart
             GUI.color = prev;
         }
 
-        static List<string> Wrap(string text, int maxChars)
+        static List<string> Wrap(string text, float maxWidth, float scale)
         {
             var lines = new List<string>();
             string line = "";
             foreach (var word in text.Split(' '))
             {
                 if (line.Length == 0) line = word;
-                else if (line.Length + 1 + word.Length <= maxChars) line += " " + word;
+                else if (PixelFont.Width(line + " " + word, scale) <= maxWidth) line += " " + word;
                 else { lines.Add(line); line = word; }
             }
             if (line.Length > 0) lines.Add(line);

@@ -40,7 +40,7 @@ namespace BlackHeart
         void Update()
         {
             var pointer = Pointer.current;
-            bool pressed = pointer != null && pointer.press.isPressed;
+            bool pressed = pointer != null && pointer.press.isPressed && !GameManager.I.Paused;
             PressedThisFrame = pressed && !IsPressed;
 
             float now = Time.time;
