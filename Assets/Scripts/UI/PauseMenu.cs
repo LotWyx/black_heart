@@ -12,6 +12,9 @@ namespace BlackHeart
         static readonly Color Gray = new Color(0.55f, 0.55f, 0.59f);
         static readonly string[] Items = { "ПРОДОЛЖИТЬ", "ГЛАВНОЕ МЕНЮ" };
 
+        public const float IconSize = 6;    // ширина иконки паузы (пиксели низкого разрешения)
+        static readonly Color Accent = new Color(0.86f, 0.25f, 0.42f);
+
         int selected;
         readonly List<Rect> rects = new List<Rect>();
         Rect pauseButton;
@@ -124,6 +127,19 @@ namespace BlackHeart
             Box(R(x + w - 1, y, 1, h), c);
         }
 
+        // Красные пиксельные завитки по бокам рамки выбранного пункта (справа как есть, слева зеркально)
+        void Ornaments(float x, float y, float w, float h)
+        {
+            var sprite = ArtLibrary.Get(ArtIds.MenuOrnament);
+            var tex = sprite.texture;
+            Rect r = sprite.rect;
+            var uv = new Rect(r.x / tex.width, r.y / tex.height, r.width / tex.width, r.height / tex.height);
+            var flipped = new Rect(uv.xMax, uv.y, -uv.width, uv.height);
+            float oy = y + Mathf.Floor((h - r.height) / 2f);
+            GUI.DrawTextureWithTexCoords(R(x + w + 2, oy, r.width, r.height), tex, uv);
+            GUI.DrawTextureWithTexCoords(R(x - 2 - r.width, oy, r.width, r.height), tex, flipped);
+        }
+
         void Text(string text, float x, float y, float scale, Color color)
         {
             Vector2 g = gm.Pixel.RtToGui(x, y);
@@ -141,16 +157,23 @@ namespace BlackHeart
 
             if (!gm.Paused)
             {
-                // Кнопка паузы «II» вверху по центру
-                if (repaint) pauseButton = R(cx - 7, 4, 14, 13);
-                Frame(cx - 7, 4, 14, 13, Gray);
-                Box(R(cx - 3, 7, 2, 7), Gray);
-                Box(R(cx + 1, 7, 2, 7), Gray);
+                // Иконка паузы в стиле HUD: две белые полоски высотой с букву, на строке «ОЧКИ»
+                float px = gm.Pixel.RtWidth - 6 - IconSize, py = 6;
+                if (repaint) pauseButton = R(px - 5, py - 5, IconSize + 10, 17);   // с запасом для пальца
+                Box(R(px, py, 2, 7), Color.white);
+                Box(R(px + 4, py, 2, 7), Color.white);
                 return;
             }
 
-            Box(R(0, 0, gm.Pixel.RtWidth, h), new Color(0, 0, 0, 0.7f));
-            Vector2 g = gm.Pixel.RtToGui(cx, h / 2 - 34);
+            Box(R(0, 0, gm.Pixel.RtWidth, h), new Color(0, 0, 0, 0.8f));
+
+            // Сплошная панель с рамкой как у поля боя: текст не сливается с тем, что под ней
+            float pw = 150, top = h / 2 - 46, ph = 98;
+            Box(R(cx - pw / 2, top, pw, ph), Color.black);
+            Frame(cx - pw / 2, top, pw, ph, White);
+            Frame(cx - pw / 2 + 2, top + 2, pw - 4, ph - 4, Accent);
+
+            Vector2 g = gm.Pixel.RtToGui(cx, h / 2 - 38);
             PixelFont.Draw("ПАУЗА", g.x + 2 * s, g.y + 2 * s, 3 * s, new Color(0.27f, 0.02f, 0.05f), 0);
             PixelFont.Draw("ПАУЗА", g.x, g.y, 3 * s, White, 0);
 
@@ -160,17 +183,18 @@ namespace BlackHeart
             if (repaint) rects.Clear();
             for (int i = 0; i < Items.Length; i++)
             {
-                float y = h / 2 + 2 + i * 18, x = cx - fw / 2;
+                float y = h / 2 + i * 18, x = cx - fw / 2;
                 bool sel = i == selected;
                 if (sel)
                 {
                     Box(R(x, y - 4, fw, 15), new Color(0, 0, 0, 0.55f));
                     Frame(x, y - 4, fw, 15, White);
+                    Ornaments(x, y - 4, fw, 15);
                 }
                 Text(Items[i], cx, y, 1, sel ? White : Gray);
                 if (repaint) rects.Add(R(x, y - 4, fw, 15));
             }
-            Text(Application.isMobilePlatform ? "" : "ESC - ПРОДОЛЖИТЬ", cx, h - 14, 1, Gray);
+            if (!Application.isMobilePlatform) Text("ESC - ПРОДОЛЖИТЬ", cx, h / 2 + 38, 1, Gray);
         }
     }
 }

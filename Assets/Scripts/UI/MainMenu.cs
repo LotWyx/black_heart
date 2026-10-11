@@ -216,7 +216,6 @@ namespace BlackHeart
 
             DrawShade();
             DrawLogo();
-            DrawRecordCorner();
 
             if (page == Page.Main) DrawMain(repaint);
             else if (page == Page.Record) DrawRecord(repaint);
@@ -291,24 +290,19 @@ namespace BlackHeart
             Box(R(ColumnX + w / 2 + 4, y + 3, 10, 1), DarkRed);
         }
 
-        // Справа вверху — рекорд (как приветствие игрока в референсе)
-        void DrawRecordCorner()
-        {
-            int best = gm.Score.Best;
-            if (best <= 0) return;
-            float right = gm.Pixel.RtWidth - 12;
-            string num = best.ToString();
-            Text(num, right, 12, 1, White, 1);
-            Text("РЕКОРД ", right - TextWidth(num, 1), 12, 1, Gray, 1);
-        }
-
         // Подсказки управления внизу слева: клавиша в рамке и действие
         void DrawHints()
         {
-            float y = gm.Pixel.RtHeight - 14, x = 14;
+            // Внизу у самой правой границы
+            float y = gm.Pixel.RtHeight - 14;
+            float total = HintWidth("ENTER", "ВЫБРАТЬ");
+            if (page != Page.Main) total += 10 + HintWidth("ESC", "НАЗАД");
+            float x = gm.Pixel.RtWidth - 4 - total;
             x = Hint(x, y, "ENTER", "ВЫБРАТЬ");
             if (page != Page.Main) Hint(x + 10, y, "ESC", "НАЗАД");
         }
+
+        float HintWidth(string key, string action) => TextWidth(key, 1) + 12 + TextWidth(action, 1);
 
         float Hint(float x, float y, string key, string action)
         {
@@ -330,9 +324,23 @@ namespace BlackHeart
             {
                 Box(R(x, y - 4, frameWidth, 15), new Color(0, 0, 0, 0.55f));
                 Frame(x, y - 4, frameWidth, 15, White);
+                Ornaments(x, y - 4, frameWidth, 15);
             }
             Text(text, ColumnX, y, 1, sel ? White : Gray);
             if (repaint) items.Add(R(x, y - 4, frameWidth, 15));
+        }
+
+        // Красные пиксельные завитки по бокам рамки выбранного пункта (справа как есть, слева зеркально)
+        void Ornaments(float x, float y, float w, float h)
+        {
+            var sprite = ArtLibrary.Get(ArtIds.MenuOrnament);
+            var tex = sprite.texture;
+            Rect r = sprite.rect;
+            var uv = new Rect(r.x / tex.width, r.y / tex.height, r.width / tex.width, r.height / tex.height);
+            var flipped = new Rect(uv.xMax, uv.y, -uv.width, uv.height);
+            float oy = y + Mathf.Floor((h - r.height) / 2f);
+            GUI.DrawTextureWithTexCoords(R(x + w + 2, oy, r.width, r.height), tex, uv);
+            GUI.DrawTextureWithTexCoords(R(x - 2 - r.width, oy, r.width, r.height), tex, flipped);
         }
 
         float FrameWidth(params string[] texts)
@@ -384,6 +392,7 @@ namespace BlackHeart
                 {
                     Box(R(x, y - 4, fw, 26), new Color(0, 0, 0, 0.55f));
                     Frame(x, y - 4, fw, 26, White);
+                    Ornaments(x, y - 4, fw, 26);
                 }
                 Text(VolumeLabels[i], ColumnX, y, 1, sel ? White : Gray);
 

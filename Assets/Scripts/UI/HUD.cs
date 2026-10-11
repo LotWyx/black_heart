@@ -191,7 +191,7 @@ namespace BlackHeart
         {
             var e = gm.Battle.CurrentEnemy;
             if (e == null) return;
-            float right = Screen.width - 6 * s;
+            float right = Screen.width - (8 + PauseMenu.IconSize + 6) * s;   // правый угол занят иконкой паузы
             float barW = Mathf.Min(e.MaxHp * 10, 60) * s;
             Bar(new Rect(right - barW, 6 * s, barW, 7 * s), AccentDark);
             Bar(new Rect(right - barW, 6 * s, barW * e.Hp / e.MaxHp, 7 * s), Green);

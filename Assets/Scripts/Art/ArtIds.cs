@@ -37,5 +37,6 @@ namespace BlackHeart
         public const string HintFinger = "UI/HintFinger";   // 2 кадра: палец, касание
         public const string HintMouse = "UI/HintMouse";     // 2 кадра: мышь, нажатая ЛКМ
         public const string HintCross = "UI/HintCross";
+        public const string MenuOrnament = "UI/MenuOrnament";   // завиток у рамки выбранного пункта меню
     }
 }
