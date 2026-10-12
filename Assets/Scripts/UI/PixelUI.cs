@@ -93,6 +93,56 @@ namespace BlackHeart
 
         public static float Width(string text, float scale = 1) => PixelFont.Width(text, Scale * scale) / Scale;
 
+        // Плашка выбранного пункта меню в стиле рамки боя: тень, тёмная подложка с кровавым отсветом,
+        // белая рамка со срезанными углами, красная линия внутри (мягко пульсирует), заклёпки в углах
+        // и красные завитки по бокам. Общая для главного меню и паузы.
+        static readonly Color SelWhite = new Color(0xE8 / 255f, 0xE8 / 255f, 0xF0 / 255f);
+        static readonly Color SelRed = new Color(0xE8 / 255f, 0x24 / 255f, 0x24 / 255f);
+        static readonly Color SelDarkRed = new Color(0xC4 / 255f, 0x1C / 255f, 0x24 / 255f);
+        static readonly Color SelBlood = new Color(0x46 / 255f, 0x04 / 255f, 0x0C / 255f);
+
+        public static void SelectFrame(float x, float y, float w, float h)
+        {
+            Box(x + 1, y + 1, w, h, new Color(0, 0, 0, 0.5f));                        // тень
+            Box(x, y, w, h, new Color(0.02f, 0.01f, 0.02f, 0.82f));                     // подложка
+            for (int i = 0; i < 6; i++)                                                 // отсвет слева ступенями
+                Box(x + 1 + i * 6, y + 1, 6, h - 2, new Color(SelBlood.r, SelBlood.g, SelBlood.b, 0.55f * (1f - i / 6f)));
+            for (int i = 0; i < 6; i++)                                                 // и справа, слабее
+                Box(x + w - 7 - i * 6, y + 1, 6, h - 2, new Color(SelBlood.r, SelBlood.g, SelBlood.b, 0.3f * (1f - i / 6f)));
+
+            // белая рамка со срезанными углами
+            Box(x + 1, y, w - 2, 1, SelWhite); Box(x + 1, y + h - 1, w - 2, 1, SelWhite);
+            Box(x, y + 1, 1, h - 2, SelWhite); Box(x + w - 1, y + 1, 1, h - 2, SelWhite);
+
+            // красная линия внутри — пульсирует ступенями
+            float pulse = Mathf.Floor(Mathf.PingPong(Time.unscaledTime * 2f, 1f) * 3f) / 3f;
+            var accent = Color.Lerp(SelDarkRed, SelRed, pulse);
+            Box(x + 2, y + 2, w - 4, 1, accent); Box(x + 2, y + h - 3, w - 4, 1, accent);
+            Box(x + 2, y + 3, 1, h - 6, accent); Box(x + w - 3, y + 3, 1, h - 6, accent);
+
+            // заклёпки-ромбики в углах, как у рамки боя
+            foreach (var c in new[] { new Vector2(x, y), new Vector2(x + w - 1, y), new Vector2(x, y + h - 1), new Vector2(x + w - 1, y + h - 1) })
+            {
+                Box(c.x, c.y, 1, 1, SelRed);
+                Box(c.x - 1, c.y, 1, 1, SelDarkRed); Box(c.x + 1, c.y, 1, 1, SelDarkRed);
+                Box(c.x, c.y - 1, 1, 1, SelDarkRed); Box(c.x, c.y + 1, 1, 1, SelDarkRed);
+            }
+            Ornaments(x, y, w, h);
+        }
+
+        // Красные пиксельные завитки по бокам рамки (справа как есть, слева зеркально)
+        public static void Ornaments(float x, float y, float w, float h)
+        {
+            var sprite = ArtLibrary.Get(ArtIds.MenuOrnament);
+            var tex = sprite.texture;
+            Rect r = sprite.rect;
+            var uv = new Rect(r.x / tex.width, r.y / tex.height, r.width / tex.width, r.height / tex.height);
+            var flipped = new Rect(uv.xMax, uv.y, -uv.width, uv.height);
+            float oy = y + Mathf.Floor((h - r.height) / 2f);
+            GUI.DrawTextureWithTexCoords(R(x + w + 2, oy, r.width, r.height), tex, uv);
+            GUI.DrawTextureWithTexCoords(R(x - 2 - r.width, oy, r.width, r.height), tex, flipped);
+        }
+
         // Подсказка клавиши мелким шрифтом: клавиша в рамке и действие рядом (главное меню, вступление).
         // (x, y) — левый верх букв; возвращает правый край. action может быть пустым.
         public static readonly Color HintWhite = new Color(0xE8 / 255f, 0xE8 / 255f, 0xF0 / 255f);

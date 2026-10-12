@@ -34,15 +34,3 @@ L.save("FX/Sparks", {
   L.rows({ "...", ".W.", "..g" }),
 }, { 0.05 })
 
--- Круг 64x64: «полупрозрачная» заливка шахматкой + сплошное кольцо 2 px
-local circle = L.grid(64, 64)
-for y = 0, 63 do
-  for x = 0, 63 do
-    local dx, dy = x + 0.5 - 32, y + 0.5 - 32
-    local d = math.sqrt(dx * dx + dy * dy)
-    if d <= 31.5 then
-      if d >= 29.5 or (x + y) % 2 == 0 then L.set(circle, x, y, "W") end
-    end
-  end
-end
-L.save("FX/BoomCircle", { circle })

@@ -25,32 +25,6 @@ namespace BlackHeart
         public Vector2 Evaluate(float t) => start + dir * speed * t;
     }
 
-    // Летит к цели, наворачивая петли. Петли затухают у самой цели, чтобы попадание было честным.
-    public sealed class ZigzagMotion : IProjectileMotion
-    {
-        readonly Vector2 start, dir, perp;
-        readonly float speed, length, loopRadius, loopFreq;
-
-        public ZigzagMotion(Vector2 start, Vector2 target, float speed, float loopRadius, float loopFreq)
-        {
-            this.start = start;
-            dir = (target - start).normalized;
-            perp = new Vector2(-dir.y, dir.x) * (Random.value < 0.5f ? 1 : -1);
-            length = Vector2.Distance(start, target);
-            this.speed = speed;
-            this.loopRadius = loopRadius;
-            this.loopFreq = loopFreq;
-        }
-
-        public Vector2 Evaluate(float t)
-        {
-            float d = speed * t;
-            float amp = loopRadius * Mathf.Clamp01((length - d) / 2f);
-            float a = loopFreq * t;
-            return start + dir * d + (dir * Mathf.Sin(a) + perp * (1f - Mathf.Cos(a))) * amp;
-        }
-    }
-
     // Спираль, сходящаяся к центру
     public sealed class SpiralMotion : IProjectileMotion
     {

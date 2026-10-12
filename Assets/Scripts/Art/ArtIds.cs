@@ -18,8 +18,6 @@ namespace BlackHeart
         public static string BulletOf(ProjectileType type, string theme, string variant) =>
             "Projectiles/" + theme + "/" + (variant ?? "Bullet") + type;
 
-        public const string BoomCircle = "FX/BoomCircle";
-
         public const string BackgroundBattle = "Background/Hall";        // готический зал с витражом, 3 кадра 320x180
         public const string BackgroundMenu = "Background/BloodMoon";     // кровавая луна над морем, 3 кадра 320x180
         public const string BackgroundSunset = "Background/Sunset";      // запасной процедурный фон (PixelArt)

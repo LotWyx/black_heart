@@ -125,42 +125,12 @@ namespace BlackHeart
             GUI.color = prev;
         }
 
-        void Frame(float x, float y, float w, float h, Color c)
-        {
-            Box(R(x, y, w, 1), c);
-            Box(R(x, y + h - 1, w, 1), c);
-            Box(R(x, y, 1, h), c);
-            Box(R(x + w - 1, y, 1, h), c);
-        }
-
-        // Красные пиксельные завитки по бокам рамки выбранного пункта (справа как есть, слева зеркально)
-        void Ornaments(float x, float y, float w, float h)
-        {
-            var sprite = ArtLibrary.Get(ArtIds.MenuOrnament);
-            var tex = sprite.texture;
-            Rect r = sprite.rect;
-            var uv = new Rect(r.x / tex.width, r.y / tex.height, r.width / tex.width, r.height / tex.height);
-            var flipped = new Rect(uv.xMax, uv.y, -uv.width, uv.height);
-            float oy = y + Mathf.Floor((h - r.height) / 2f);
-            GUI.DrawTextureWithTexCoords(R(x + w + 2, oy, r.width, r.height), tex, uv);
-            GUI.DrawTextureWithTexCoords(R(x - 2 - r.width, oy, r.width, r.height), tex, flipped);
-        }
 
         void Text(string text, float x, float y, float scale, Color color, int align = 0)
         {
             Vector2 g = gm.Pixel.RtToGui(x, y);
             PixelFont.Draw(text, g.x + s * scale, g.y + s * scale, s * scale, Color.black, align);
             PixelFont.Draw(text, g.x, g.y, s * scale, color, align);
-        }
-
-        float Hint(float x, float y, string key, string action)
-        {
-            float kw = PixelFont.Width(key, s) / s;
-            Frame(x, y - 3, kw + 8, 13, Gray);
-            Text(key, x + 4, y, 1, White, -1);
-            x += kw + 12;
-            Text(action, x, y, 1, Gray, -1);
-            return x + PixelFont.Width(action, s) / s;
         }
 
         void OnGUI()
@@ -234,9 +204,7 @@ namespace BlackHeart
                 bool sel = i == selected;
                 if (sel)
                 {
-                    Box(R(x, y - 4, fw, 15), new Color(Blood.r, Blood.g, Blood.b, 0.8f));
-                    Frame(x, y - 4, fw, 15, White);
-                    Ornaments(x, y - 4, fw, 15);
+                    PixelUI.SelectFrame(x, y - 4, fw, 15);
                 }
                 Text(Items[i], cx, y, 1, sel ? White : Gray);
                 if (repaint) rects.Add(R(x, y - 4, fw, 15));
@@ -245,12 +213,11 @@ namespace BlackHeart
             // подсказки клавиш внизу панели
             if (!Application.isMobilePlatform)
             {
-                float hy = top + ph - 17;
-                float total = PixelFont.Width("ENTER", s) / s + 12 + PixelFont.Width("ВЫБРАТЬ", s) / s + 10
-                            + PixelFont.Width("ESC", s) / s + 12 + PixelFont.Width("НАЗАД", s) / s;
+                float hy = top + ph - 14;   // мелкие подсказки, как в главном меню
+                float total = PixelUI.KeyHintWidth("ENTER", "ВЫБРАТЬ") + 8 + PixelUI.KeyHintWidth("ESC", "НАЗАД");
                 float hx = Mathf.Round(cx - total / 2);
-                hx = Hint(hx, hy, "ENTER", "ВЫБРАТЬ");
-                Hint(hx + 10, hy, "ESC", "НАЗАД");
+                hx = PixelUI.KeyHint(hx, hy, "ENTER", "ВЫБРАТЬ");
+                PixelUI.KeyHint(hx + 8, hy, "ESC", "НАЗАД");
             }
         }
     }

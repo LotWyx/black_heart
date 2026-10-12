@@ -2,15 +2,19 @@ using UnityEngine;
 
 namespace BlackHeart
 {
-    // Музыка: в главном меню и на экране проигрыша — «Music Box of Souls» (Resources/Audio/Music/MusicBoxOfSouls),
-    // в бою — «Cathedral of Blades» (Resources/Audio/Music/CathedralOfBlades). Смена трека — плавным перекрёстным затуханием;
-    // при выходе в меню и проигрыше — мгновенно.
+    // Музыка (Resources/Audio/Music, файлы «<Где>_<Название>.ogg»): во вступлении — «Black Heart: Prologue»
+    // (Intro_, один раз), в главном меню — «Music Box of Souls» (Menu_), в бою — «Cathedral of Blades» (Battle_),
+    // при смерти и на экране проигрыша — «Hold On To Your Heart» (GameOver_). Треки выровнены по громкости
+    // (−16 LUFS, бой −15), петли бесшовные: конец трека перетекает в начало.
+    // В бой — плавным перекрёстным затуханием; во всё остальное — мгновенно.
     // Другие треки — назначьте AudioClip в полях. Если боевого файла нет — синтезированная чиптюн-петля.
     public class MusicPlayer : MonoBehaviour
     {
-        public AudioClip battleTrack, menuTrack;
-        const string BattlePath = "Audio/Music/CathedralOfBlades";
-        const string MenuPath = "Audio/Music/MusicBoxOfSouls";
+        public AudioClip battleTrack, menuTrack, introTrack, gameOverTrack;
+        const string BattlePath = "Audio/Music/Battle_CathedralOfBlades";
+        const string MenuPath = "Audio/Music/Menu_MusicBoxOfSouls";
+        const string IntroPath = "Audio/Music/Intro_Prologue";
+        const string GameOverPath = "Audio/Music/GameOver_HoldOnToYourHeart";
         const float FadeTime = 1.2f;   // секунды; в реальном времени, чтобы работало и на паузе
 
         readonly AudioSource[] sources = new AudioSource[2];
@@ -41,15 +45,23 @@ namespace BlackHeart
             }
             if (menuTrack == null) menuTrack = Resources.Load<AudioClip>(MenuPath);
             if (menuTrack == null) menuTrack = battleTrack;
+            if (introTrack == null) introTrack = Resources.Load<AudioClip>(IntroPath);
+            if (gameOverTrack == null) gameOverTrack = Resources.Load<AudioClip>(GameOverPath);
+            if (gameOverTrack == null) gameOverTrack = menuTrack;
         }
 
         void Update()
         {
             var gm = GameManager.I;
             if (gm == null) return;
-            AudioClip want = gm.CurrentState == GameManager.State.Playing ? battleTrack : menuTrack;
-            // в меню и при проигрыше — сразу, без затухания (иначе при быстром выходе в меню боевой трек ещё доигрывает)
-            bool instant = want == menuTrack;
+            var state = gm.CurrentState;
+            AudioClip want = gm.Intro != null && gm.Intro.IsPlaying && introTrack != null ? introTrack
+                           : state == GameManager.State.Playing ? battleTrack
+                           : state == GameManager.State.Dying || state == GameManager.State.GameOver ? gameOverTrack
+                           : menuTrack;
+            // плавно — только в бой; меню, вступление и проигрыш начинаются сразу
+            // (иначе при быстром выходе в меню боевой трек ещё доигрывает)
+            bool instant = want != battleTrack;
             if (want != null && sources[active].clip != want) SwitchTo(want, instant);
             if (fade < 1f) fade = Mathf.Min(1f, fade + Time.unscaledDeltaTime / FadeTime);
             ApplyVolume();
@@ -60,6 +72,7 @@ namespace BlackHeart
             bool silent = sources[active].clip == null;
             active = 1 - active;
             sources[active].clip = clip;
+            sources[active].loop = clip != introTrack;   // вступление звучит один раз
             sources[active].Play();
             fade = silent || instant ? 1f : 0f;   // самый первый трек и трек меню/проигрыша — сразу, без затухания
         }

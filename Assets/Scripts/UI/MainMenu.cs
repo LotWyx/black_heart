@@ -248,14 +248,6 @@ namespace BlackHeart
             GUI.color = prev;
         }
 
-        // Рамка толщиной 1 пиксель
-        void Frame(float x, float y, float w, float h, Color c)
-        {
-            Box(R(x, y, w, 1), c);
-            Box(R(x, y + h - 1, w, 1), c);
-            Box(R(x, y, 1, h), c);
-            Box(R(x + w - 1, y, 1, h), c);
-        }
 
         void Text(string text, float x, float y, float scale, Color color, int align = 0, bool shadow = true)
         {
@@ -320,50 +312,7 @@ namespace BlackHeart
             if (repaint) items.Add(R(x, y - 4, frameWidth, 15));
         }
 
-        // Плашка выбранного пункта в стиле рамки боя: тень, тёмная подложка с кровавым отсветом слева,
-        // белая рамка со срезанными углами, красная линия внутри (мягко пульсирует), заклёпки в углах
-        // и красные завитки по бокам
-        void SelectFrame(float x, float y, float w, float h)
-        {
-            Box(R(x + 1, y + 1, w, h), new Color(0, 0, 0, 0.5f));                       // тень
-            Box(R(x, y, w, h), new Color(0.02f, 0.01f, 0.02f, 0.82f));                    // подложка
-            for (int i = 0; i < 6; i++)                                                   // отсвет слева ступенями
-                Box(R(x + 1 + i * 6, y + 1, 6, h - 2), new Color(Blood.r, Blood.g, Blood.b, 0.55f * (1f - i / 6f)));
-            for (int i = 0; i < 6; i++)                                                   // и справа, слабее
-                Box(R(x + w - 7 - i * 6, y + 1, 6, h - 2), new Color(Blood.r, Blood.g, Blood.b, 0.3f * (1f - i / 6f)));
-
-            // белая рамка со срезанными углами
-            Box(R(x + 1, y, w - 2, 1), White); Box(R(x + 1, y + h - 1, w - 2, 1), White);
-            Box(R(x, y + 1, 1, h - 2), White); Box(R(x + w - 1, y + 1, 1, h - 2), White);
-
-            // красная линия внутри — пульсирует ступенями
-            float pulse = Mathf.Floor(Mathf.PingPong(Time.unscaledTime * 2f, 1f) * 3f) / 3f;
-            var accent = Color.Lerp(DarkRed, Red, pulse);
-            Box(R(x + 2, y + 2, w - 4, 1), accent); Box(R(x + 2, y + h - 3, w - 4, 1), accent);
-            Box(R(x + 2, y + 3, 1, h - 6), accent); Box(R(x + w - 3, y + 3, 1, h - 6), accent);
-
-            // заклёпки-ромбики в углах, как у рамки боя
-            foreach (var c in new[] { new Vector2(x, y), new Vector2(x + w - 1, y), new Vector2(x, y + h - 1), new Vector2(x + w - 1, y + h - 1) })
-            {
-                Box(R(c.x, c.y, 1, 1), Red);
-                Box(R(c.x - 1, c.y, 1, 1), DarkRed); Box(R(c.x + 1, c.y, 1, 1), DarkRed);
-                Box(R(c.x, c.y - 1, 1, 1), DarkRed); Box(R(c.x, c.y + 1, 1, 1), DarkRed);
-            }
-            Ornaments(x, y, w, h);
-        }
-
-        // Красные пиксельные завитки по бокам рамки выбранного пункта (справа как есть, слева зеркально)
-        void Ornaments(float x, float y, float w, float h)
-        {
-            var sprite = ArtLibrary.Get(ArtIds.MenuOrnament);
-            var tex = sprite.texture;
-            Rect r = sprite.rect;
-            var uv = new Rect(r.x / tex.width, r.y / tex.height, r.width / tex.width, r.height / tex.height);
-            var flipped = new Rect(uv.xMax, uv.y, -uv.width, uv.height);
-            float oy = y + Mathf.Floor((h - r.height) / 2f);
-            GUI.DrawTextureWithTexCoords(R(x + w + 2, oy, r.width, r.height), tex, uv);
-            GUI.DrawTextureWithTexCoords(R(x - 2 - r.width, oy, r.width, r.height), tex, flipped);
-        }
+        void SelectFrame(float x, float y, float w, float h) => PixelUI.SelectFrame(x, y, w, h);
 
         float FrameWidth(params string[] texts)
         {

@@ -140,14 +140,12 @@ namespace BlackHeart
             get
             {
                 foreach (var id in maps.Keys) yield return id;
-                yield return ArtIds.BoomCircle;
                 yield return ArtIds.BackgroundSunset;
             }
         }
 
         public static Texture2D CreateTexture(string id)
         {
-            if (id == ArtIds.BoomCircle) return Disk(32);
             if (id == ArtIds.BackgroundSunset) return Sunset(320, 180);
             if (!maps.TryGetValue(id, out var rows)) return null;
 
@@ -259,23 +257,6 @@ namespace BlackHeart
                 case 'x': return Color.black;
                 default: return Color.clear;
             }
-        }
-
-        static Texture2D Disk(int size)
-        {
-            var tex = NewTexture(size, size);
-            var px = new Color[size * size];
-            float r = size / 2f - 0.5f;
-            for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
-            {
-                float dx = x - (size - 1) / 2f, dy = y - (size - 1) / 2f;
-                float d = Mathf.Sqrt(dx * dx + dy * dy);
-                px[y * size + x] = d <= r ? Color.white : Color.clear;
-            }
-            tex.SetPixels(px);
-            tex.Apply();
-            return tex;
         }
 
         static Texture2D NewTexture(int w, int h)

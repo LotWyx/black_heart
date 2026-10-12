@@ -10,9 +10,6 @@ namespace BlackHeart
         static readonly Dictionary<string, Func<AttackPattern>> registry = new Dictionary<string, Func<AttackPattern>>
         {
             [StraightPattern.ID] = () => new StraightPattern(),
-            [ZigzagPattern.ID] = () => new ZigzagPattern(),
-            [SpiralPattern.ID] = () => new SpiralPattern(),
-            [DrunkPattern.ID] = () => new DrunkPattern(),
             [BoomCirclePattern.ID] = () => new BoomCirclePattern(),
             // Скелет
             [BoneWallPattern.ID] = () => new BoneWallPattern(),
