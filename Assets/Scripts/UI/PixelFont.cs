@@ -116,6 +116,75 @@ public static class PixelFont
         return tex;
     }
 
+    // ---------- мелкий шрифт для подсказок клавиш (5 px высотой, ширина буквы своя) ----------
+    static readonly Dictionary<char, string> small = new Dictionary<char, string>
+    {
+        ['A'] = ".#.|#.#|###|#.#|#.#", ['Б'] = "###|#..|##.|#.#|##.", ['В'] = "##.|#.#|##.|#.#|##.",
+        ['Г'] = "###|#..|#..|#..|#..", ['Д'] = ".##.|.#.#|.#.#|####|#..#", ['E'] = "###|#..|##.|#..|###",
+        ['З'] = "##.|..#|.#.|..#|##.", ['И'] = "#..#|#.##|##.#|#..#|#..#", ['Й'] = ".##.|#..#|#.##|##.#|#..#",
+        ['К'] = "#.#|#.#|##.|#.#|#.#", ['Л'] = ".##|#.#|#.#|#.#|#.#", ['M'] = "#...#|##.##|#.#.#|#...#|#...#",
+        ['Н'] = "#.#|#.#|###|#.#|#.#", ['N'] = "#..#|##.#|#.##|#..#|#..#", ['O'] = ".#.|#.#|#.#|#.#|.#.",
+        ['П'] = "###|#.#|#.#|#.#|#.#", ['P'] = "##.|#.#|##.|#..|#..", ['R'] = "##.|#.#|##.|#.#|#.#",
+        ['C'] = ".##|#..|#..|#..|.##", ['S'] = ".##|#..|.#.|..#|##.", ['T'] = "###|.#.|.#.|.#.|.#.",
+        ['У'] = "#.#|#.#|.##|..#|##.", ['Ч'] = "#.#|#.#|.##|..#|..#", ['Ш'] = "#.#.#|#.#.#|#.#.#|#.#.#|#####",
+        ['Ы'] = "#...#|#...#|##..#|#.#.#|##..#", ['Ь'] = "#..|#..|##.|#.#|##.", ['Я'] = ".##|#.#|.##|#.#|#.#",
+        ['Ж'] = "#.#.#|#.#.#|.###.|#.#.#|#.#.#", ['Ф'] = ".#.|###|#.#|###|.#.", ['Х'] = "#.#|#.#|.#.|#.#|#.#",
+        ['L'] = "#..|#..|#..|#..|###", ['B'] = "##.|#.#|##.|#.#|##.", ['U'] = "#.#|#.#|#.#|#.#|###",
+        [' '] = "..|..|..|..|..", ['>'] = "#..|.#.|..#|.#.|#..", ['<'] = "..#|.#.|#..|.#.|..#",
+    };
+    static readonly Dictionary<char, Texture2D> smallCache = new Dictionary<char, Texture2D>();
+    public const float SmallHeight = 5;
+
+    static string SmallDef(char c)
+    {
+        // кириллица, совпадающая с латиницей по начертанию
+        switch (c) { case 'А': c = 'A'; break; case 'Е': case 'Ё': c = 'E'; break; case 'М': c = 'M'; break; case 'О': c = 'O'; break;
+                     case 'Р': c = 'P'; break; case 'С': c = 'C'; break; case 'Т': c = 'T'; break; }
+        return small.TryGetValue(c, out var d) ? d : null;
+    }
+
+    static Texture2D SmallGlyph(char c, string def)
+    {
+        if (smallCache.TryGetValue(c, out var tex) && tex != null) return tex;
+        var rows = def.Split('|');
+        int w = rows[0].Length;
+        tex = new Texture2D(w, 5, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
+        for (int y = 0; y < 5; y++)
+            for (int x = 0; x < w; x++)
+                tex.SetPixel(x, 4 - y, rows[y][x] == '#' ? Color.white : Color.clear);
+        tex.Apply();
+        smallCache[c] = tex;
+        return tex;
+    }
+
+    // Ширина мелкой надписи в экранных пикселях (scale — экранных пикселей в пикселе игры)
+    public static float SmallWidth(string text, float scale)
+    {
+        float w = 0;
+        foreach (char ch in text.ToUpperInvariant())
+        {
+            var def = SmallDef(ch) ?? small['O'];
+            w += (def.IndexOf('|') + 1) * scale;
+        }
+        return Mathf.Max(0, w - scale);
+    }
+
+    // Мелкая надпись: (x, y) — левый верх, без выравнивания
+    public static void DrawSmall(string text, float x, float y, float scale, Color color)
+    {
+        x = Mathf.Round(x); y = Mathf.Round(y);
+        var prev = GUI.color;
+        GUI.color = color;
+        foreach (char ch in text.ToUpperInvariant())
+        {
+            var def = SmallDef(ch) ?? small['O'];
+            int w = def.IndexOf('|');
+            if (ch != ' ') GUI.DrawTexture(new Rect(x, y, w * scale, 5 * scale), SmallGlyph(ch, def));
+            x += (w + 1) * scale;
+        }
+        GUI.color = prev;
+    }
+
     // ---------- Hollowetica ----------
     const string FontPath = "Fonts/Hollowetica";
     const float EmPixels = 8f;          // пикселей шрифта на em

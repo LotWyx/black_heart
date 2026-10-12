@@ -168,11 +168,12 @@ namespace BlackHeart
             }
             gm.Projectiles.BlueRush = false;
             gm.Projectiles.ClearAll();
-            // Бонус за защиту без урона: надписи появляются там же, где «+100» за победу, — на месте врага
+            // Бонус за защиту без урона: «ЧИСТО!» и «+50» рядом с сердцем
             if (gm.Player.Hp >= hpBefore)
             {
-                GameEvents.RaiseCleanDefense(EnemyHome());
-                gm.Score.Add(gm.Score.cleanDefense, EnemyHome());
+                Vector2 at = gm.Player.Position + new Vector2(1.6f, 0.2f);
+                GameEvents.RaiseCleanDefense(at);
+                gm.Score.Add(gm.Score.cleanDefense, at);
             }
             Turn++;
             FightTurn++;

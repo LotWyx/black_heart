@@ -4,7 +4,7 @@ namespace BlackHeart
 {
     // Музыка: в главном меню и на экране проигрыша — «Music Box of Souls» (Resources/Audio/Music/MusicBoxOfSouls),
     // в бою — «Cathedral of Blades» (Resources/Audio/Music/CathedralOfBlades). Смена трека — плавным перекрёстным затуханием;
-    // при проигрыше — мгновенно, в тот же миг, когда у игрока кончилось здоровье.
+    // при выходе в меню и проигрыше — мгновенно.
     // Другие треки — назначьте AudioClip в полях. Если боевого файла нет — синтезированная чиптюн-петля.
     public class MusicPlayer : MonoBehaviour
     {
@@ -48,8 +48,9 @@ namespace BlackHeart
             var gm = GameManager.I;
             if (gm == null) return;
             AudioClip want = gm.CurrentState == GameManager.State.Playing ? battleTrack : menuTrack;
-            bool lost = gm.CurrentState == GameManager.State.Dying || gm.CurrentState == GameManager.State.GameOver;
-            if (want != null && sources[active].clip != want) SwitchTo(want, lost);
+            // в меню и при проигрыше — сразу, без затухания (иначе при быстром выходе в меню боевой трек ещё доигрывает)
+            bool instant = want == menuTrack;
+            if (want != null && sources[active].clip != want) SwitchTo(want, instant);
             if (fade < 1f) fade = Mathf.Min(1f, fade + Time.unscaledDeltaTime / FadeTime);
             ApplyVolume();
         }
@@ -60,7 +61,7 @@ namespace BlackHeart
             active = 1 - active;
             sources[active].clip = clip;
             sources[active].Play();
-            fade = silent || instant ? 1f : 0f;   // самый первый трек и трек проигрыша — сразу, без затухания
+            fade = silent || instant ? 1f : 0f;   // самый первый трек и трек меню/проигрыша — сразу, без затухания
         }
 
         void ApplyVolume()

@@ -92,5 +92,28 @@ namespace BlackHeart
         }
 
         public static float Width(string text, float scale = 1) => PixelFont.Width(text, Scale * scale) / Scale;
+
+        // Подсказка клавиши мелким шрифтом: клавиша в рамке и действие рядом (главное меню, вступление).
+        // (x, y) — левый верх букв; возвращает правый край. action может быть пустым.
+        public static readonly Color HintWhite = new Color(0xE8 / 255f, 0xE8 / 255f, 0xF0 / 255f);
+        public static readonly Color HintGray = new Color(0x8C / 255f, 0x8C / 255f, 0x96 / 255f);
+
+        static float SmallW(string text) => PixelFont.SmallWidth(text, Scale) / Scale;
+
+        public static float KeyHintWidth(string key, string action) =>
+            SmallW(key) + 6 + (string.IsNullOrEmpty(action) ? 0 : 4 + SmallW(action));
+
+        public static float KeyHint(float x, float y, string key, string action)
+        {
+            float kw = SmallW(key);
+            Frame(x, y - 2, kw + 6, 9, HintGray);
+            Vector2 g = Pixel.RtToGui(x + 3, y);
+            PixelFont.DrawSmall(key, g.x, g.y, Scale, HintWhite);
+            x += kw + 6;
+            if (string.IsNullOrEmpty(action)) return x;
+            g = Pixel.RtToGui(x + 4, y);
+            PixelFont.DrawSmall(action, g.x, g.y, Scale, HintGray);
+            return x + 4 + SmallW(action);
+        }
     }
 }

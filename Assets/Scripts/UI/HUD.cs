@@ -93,7 +93,7 @@ namespace BlackHeart
             AddPopup(pos, delta > 0 ? "+" + delta : delta.ToString(), c, 0.7f, delta >= 50 ? 2f : 1f);
         }
 
-        // «ЧИСТО!» строкой выше очков за защиту без урона; вид тот же, что у «+100» за победу
+        // «ЧИСТО!» строкой выше очков за защиту без урона (рядом с сердцем); вид тот же, что у «+200» за победу
         void OnCleanDefense(Vector2 pos) =>
             AddPopup(pos + Vector2.up * (10f / ArtLibrary.PPU), "ЧИСТО!", Accent, 0.7f, 2f);
 

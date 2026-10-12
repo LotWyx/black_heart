@@ -9,7 +9,7 @@ namespace BlackHeart
         public int whiteBullet = 10;
         public int purpleFragment = 15;
         public int blueBulletPenalty = -25;
-        public int enemyDefeated = 100;
+        public int enemyDefeated = 200;
         public int cleanDefense = 50;     // фаза защиты пройдена без урона
 
         public int Score { get; private set; }

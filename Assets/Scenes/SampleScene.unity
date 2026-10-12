@@ -562,7 +562,7 @@ MonoBehaviour:
   whiteBullet: 10
   purpleFragment: 15
   blueBulletPenalty: -25
-  enemyDefeated: 100
+  enemyDefeated: 200
 --- !u!114 &814131230
 MonoBehaviour:
   m_ObjectHideFlags: 0

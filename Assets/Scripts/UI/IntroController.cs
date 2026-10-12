@@ -8,7 +8,7 @@ namespace BlackHeart
     // Вступление в духе Undertale: три картинки (Resources/Art/Intro/Scene1..3, по 4 кадра лёгкой анимации),
     // окно медленно едет по каждой; ниже текст печатной машинкой. Картинки появляются и гаснут ступенями,
     // после третьей — резкий переход в главное меню. Играет при каждом запуске;
-    // пропуск — нажатие в правом нижнем углу экрана (или Esc).
+    // пропуск — Esc или нажатие в правом нижнем углу экрана, где подсказка.
     public class IntroController : MonoBehaviour
     {
         const float WindowW = 240, WindowH = 120, FrameTime = 0.22f, FadeTime = 0.5f, CharsPerSecond = 24f;
@@ -32,7 +32,6 @@ namespace BlackHeart
                         text = "Лишь нашему герою хватило воли сохранить душу не чёрной. Теперь он отомстит Луноликому..." },
         };
 
-        static readonly Color Dim = new Color(0.55f, 0.55f, 0.6f);
 
         public bool IsPlaying { get; private set; }
 
@@ -156,9 +155,11 @@ namespace BlackHeart
                 ty += 11;
             }
 
-            // подсказка пропуска в правом нижнем углу
-            Vector2 hint = gm.Pixel.RtToGui(W - 6, H - 12);
-            PixelFont.Draw("ПРОПУСТИТЬ >>", hint.x, hint.y, s, Dim, 1);
+            // подсказка пропуска в правом нижнем углу — как подсказки главного меню: клавиша в рамке и действие.
+            // На телефоне клавиши нет — в рамке само слово.
+            bool touch = Application.isMobilePlatform;
+            string key = touch ? "ПРОПУСТИТЬ" : "ESC", action = touch ? "" : "ПРОПУСТИТЬ";
+            PixelUI.KeyHint(W - 5 - PixelUI.KeyHintWidth(key, action), H - 10, key, action);
         }
 
         static List<string> Wrap(string text, float maxWidth, float scale)

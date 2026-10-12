@@ -49,7 +49,7 @@ namespace BlackHeart
         Hint hint;
         float hintTime;
         SpriteRenderer hintIcon, hintCross;
-        LineRenderer hintTrail;
+        SliceVisual hintTrail;   // разрез-подсказка выглядит как настоящий (создаётся при первом показе)
 
         static bool TouchUI => Application.isMobilePlatform || Pointer.current is Touchscreen;
         static string CutText => TouchUI ? "ПРОВЕДИТЕ ПАЛЬЦЕМ, ЧТОБЫ ПОРЕЗАТЬ" : "ЗАЖМИТЕ ЛКМ И ПРОВЕДИТЕ, ЧТОБЫ ПОРЕЗАТЬ";
@@ -66,12 +66,6 @@ namespace BlackHeart
             hintCross = new GameObject("TutorialCross").AddComponent<SpriteRenderer>();
             hintCross.sprite = ArtLibrary.Get(ArtIds.HintCross);
             hintCross.sortingOrder = 31;
-            hintTrail = new GameObject("TutorialTrail").AddComponent<LineRenderer>();
-            hintTrail.useWorldSpace = true;
-            hintTrail.widthMultiplier = 2f / ArtLibrary.PPU;
-            hintTrail.startColor = hintTrail.endColor = Color.white;
-            hintTrail.sortingOrder = 29;
-            hintTrail.positionCount = 0;
             ShowHintObjects(false);
         }
 
@@ -103,7 +97,6 @@ namespace BlackHeart
         {
             StopAllCoroutines();
             IsRunning = true;
-            hintTrail.sharedMaterial = gm.Player.SpriteMaterial;
             StartCoroutine(Run());
         }
 
@@ -364,7 +357,7 @@ namespace BlackHeart
         {
             hintIcon.enabled = visible;
             hintCross.enabled = visible;
-            hintTrail.enabled = visible;
+            if (!visible && hintTrail != null) hintTrail.Hide();
         }
 
         // Рука (или мышь) проводит по цели: появляется → ведёт разрез → отпускает → пауза
@@ -397,12 +390,28 @@ namespace BlackHeart
             hintIcon.sprite = frames[pressed && frames.Length > 1 ? 1 : 0];
             hintIcon.transform.position = pos + offset;
 
-            hintTrail.enabled = trail;
+            // Разрез как у игрока: короткий светящийся хвост за кончиком; после «отпускания» хвост
+            // за долю секунды втягивается в точку, как настоящий след
+            if (hintTrail == null) hintTrail = new SliceVisual("TutorialSlice", 3f, 8f, 28);
+            float len = 0f;
             if (trail)
             {
-                hintTrail.positionCount = 2;
-                hintTrail.SetPosition(0, a);
-                hintTrail.SetPosition(1, trailEnd);
+                const float tail = 1.8f, vanish = 0.12f;
+                float since = (u - 0.6f) * cycle;   // сколько прошло после «отпускания»
+                len = pressed ? tail : tail * Mathf.Clamp01(1f - since / vanish);
+                len = Mathf.Min(len, Vector2.Distance(a, trailEnd));
+            }
+            if (len <= 0.01f) hintTrail.Hide();
+            else
+            {
+                Vector2 start = trailEnd - (b - a).normalized * len;
+                var pts = new Vector3[6];
+                for (int i = 0; i < pts.Length; i++)
+                {
+                    Vector2 p = Vector2.Lerp(start, trailEnd, i / (pts.Length - 1f));
+                    pts[i] = new Vector3(p.x, p.y, -1f);
+                }
+                hintTrail.Show(pts, pressed);
             }
 
             hintCross.enabled = hint == Hint.Blue && u > 0.35f;

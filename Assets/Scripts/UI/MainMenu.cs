@@ -6,7 +6,7 @@ namespace BlackHeart
 {
     // Главное меню в духе S.T.A.L.K.E.R. 2: логотип слева вверху, под ним колонка пунктов,
     // выбранный пункт в рамке, слева затемнение; фон — сцена боя (кровавая луна), отражённая по горизонтали.
-    // Пункты: начать игру, рекорд, настройки громкости, выход.
+    // Пункты: обучение, начать игру, рекорд, настройки громкости, выход.
     // Управление: мышь / палец (Pointer.current) и клавиатура (стрелки/WASD, Enter, Esc).
     public class MainMenu : MonoBehaviour
     {
@@ -19,7 +19,7 @@ namespace BlackHeart
         static readonly Color Blood = Hex(0x46040C);
         static readonly Color Empty = Hex(0x2E2830);
 
-        static readonly string[] MainItems = { "НАЧАТЬ ИГРУ", "РЕКОРД", "НАСТРОЙКИ", "ВЫХОД" };
+        static readonly string[] MainItems = { "ОБУЧЕНИЕ", "НАЧАТЬ ИГРУ", "РЕКОРД", "НАСТРОЙКИ", "ВЫХОД" };
         static readonly string[] VolumeLabels = { "ГРОМКОСТЬ ЗВУКА", "МУЗЫКА" };
         const float VolumeStep = 0.1f;
 
@@ -31,6 +31,7 @@ namespace BlackHeart
         readonly Rect[] minus = new Rect[2], plus = new Rect[2], bars = new Rect[2];
         Vector2 lastPointer;
         int inputFrom;   // кадр, с которого меню принимает ввод (нажатие, открывшее меню, не считается)
+        int dragBar = -1;   // ползунок, который сейчас тянут; -1 — никакой
         float s;   // экранных пикселей в одном пикселе низкого разрешения
 
         SpriteRenderer bg;
@@ -56,7 +57,7 @@ namespace BlackHeart
         {
             IsOpen = true;
             inputFrom = Time.frameCount + 1;
-            Go(Page.Main, 0, false);
+            Go(Page.Main, 1, false);   // курсор сразу на «Начать игру»
             bg.enabled = true;
             bg.flipX = true;   // луна справа, меню слева на тёмных облаках
             bgAnim.Play(ArtLibrary.Frames(ArtIds.BackgroundMenu, null, 320), 0.25f);
@@ -69,7 +70,7 @@ namespace BlackHeart
             bgAnim.Stop();
         }
 
-        int ItemCount => page == Page.Main ? MainItems.Length : page == Page.Settings ? 4 : 1;
+        int ItemCount => page == Page.Main ? MainItems.Length : page == Page.Settings ? 3 : 1;
 
         // ---------- ввод ----------
 
@@ -115,15 +116,16 @@ namespace BlackHeart
                 break;
             }
 
-            // Ползунок громкости можно тянуть
-            if (IsOpen && page == Page.Settings && pointer.press.isPressed)
+            // Ползунок громкости можно тянуть — только если нажатие началось на нём самом.
+            // Иначе клик по «Настройкам» (он стоит там же, где ползунок музыки) сразу менял громкость.
+            if (!IsOpen || page != Page.Settings || !pointer.press.isPressed) { dragBar = -1; return; }
+            if (pressed)
+                for (int i = 0; i < 2; i++) if (bars[i].Contains(gui)) dragBar = i;
+            if (dragBar >= 0)
             {
-                for (int i = 0; i < 2; i++)
-                {
-                    if (!bars[i].Contains(gui)) continue;
-                    float v = Mathf.Round(Mathf.Clamp01((gui.x - bars[i].x) / bars[i].width) * 10f) / 10f;
-                    if (!Mathf.Approximately(v, Volume(i))) SetVolume(i, v);
-                }
+                Rect b = bars[dragBar];
+                float v = Mathf.Round(Mathf.Clamp01((gui.x - b.x) / b.width) * 10f) / 10f;
+                if (!Mathf.Approximately(v, Volume(dragBar))) SetVolume(dragBar, v);
             }
         }
 
@@ -138,25 +140,25 @@ namespace BlackHeart
             switch (page)
             {
                 case Page.Main:
-                    if (index == 0) { Confirm(); gm.StartGame(); }
-                    else if (index == 1) Go(Page.Record, 0);
-                    else if (index == 2) Go(Page.Settings, 0);
+                    if (index == 0) { Confirm(); gm.StartGame(true); }        // обучение
+                    else if (index == 1) { Confirm(); gm.StartGame(false); }  // сразу в бой
+                    else if (index == 2) Go(Page.Record, 0);
+                    else if (index == 3) Go(Page.Settings, 0);
                     else Quit();
                     break;
                 case Page.Record:
-                    Go(Page.Main, 1);
+                    Go(Page.Main, 2);
                     break;
                 case Page.Settings:
-                    if (index == 2) { Confirm(); gm.StartGame(true); }   // пройти обучение заново
-                    else if (index == 3) Go(Page.Main, 2);
+                    if (index == 2) Go(Page.Main, 3);
                     break;
             }
         }
 
         void Back()
         {
-            if (page == Page.Record) Go(Page.Main, 1);
-            else if (page == Page.Settings) Go(Page.Main, 2);
+            if (page == Page.Record) Go(Page.Main, 2);
+            else if (page == Page.Settings) Go(Page.Main, 3);
         }
 
         void Go(Page target, int select, bool sound = true)
@@ -164,6 +166,8 @@ namespace BlackHeart
             page = target;
             selected = select;
             items.Clear();
+            dragBar = -1;
+            for (int i = 0; i < 2; i++) bars[i] = minus[i] = plus[i] = Rect.zero;   // старые зоны прошлого показа страницы
             if (sound) Confirm();
         }
 
@@ -294,24 +298,12 @@ namespace BlackHeart
         void DrawHints()
         {
             // Внизу у самой правой границы
-            float y = gm.Pixel.RtHeight - 14;
-            float total = HintWidth("ENTER", "ВЫБРАТЬ");
-            if (page != Page.Main) total += 10 + HintWidth("ESC", "НАЗАД");
-            float x = gm.Pixel.RtWidth - 4 - total;
-            x = Hint(x, y, "ENTER", "ВЫБРАТЬ");
-            if (page != Page.Main) Hint(x + 10, y, "ESC", "НАЗАД");
-        }
-
-        float HintWidth(string key, string action) => TextWidth(key, 1) + 12 + TextWidth(action, 1);
-
-        float Hint(float x, float y, string key, string action)
-        {
-            float kw = TextWidth(key, 1);
-            Frame(x, y - 3, kw + 8, 13, Gray);
-            Text(key, x + 4, y, 1, White, -1, false);
-            x += kw + 12;
-            Text(action, x, y, 1, Gray, -1, false);
-            return x + TextWidth(action, 1);
+            float y = gm.Pixel.RtHeight - 10;
+            float total = PixelUI.KeyHintWidth("ENTER", "ВЫБРАТЬ");
+            if (page != Page.Main) total += 8 + PixelUI.KeyHintWidth("ESC", "НАЗАД");
+            float x = gm.Pixel.RtWidth - 5 - total;
+            x = PixelUI.KeyHint(x, y, "ENTER", "ВЫБРАТЬ");
+            if (page != Page.Main) PixelUI.KeyHint(x + 8, y, "ESC", "НАЗАД");
         }
 
         // Пункт меню: выбранный — в белой рамке с тёмной подложкой, остальные серые.
@@ -413,9 +405,7 @@ namespace BlackHeart
                     bars[i] = R(bx, by - 2, barW, 11);
                 }
             }
-            float iw = FrameWidth("ОБУЧЕНИЕ", "НАЗАД");
-            Item(2, "ОБУЧЕНИЕ", 132, iw, repaint);
-            Item(3, "НАЗАД", 150, iw, repaint);
+            Item(2, "НАЗАД", 140, FrameWidth("НАЗАД"), repaint);
         }
     }
 }
