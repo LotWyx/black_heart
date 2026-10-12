@@ -61,7 +61,8 @@ namespace BlackHeart
                 Vector2 from = center + dir * StartRadius;   // кольцо рождается уже раскрытым, а не кучей в одной точке
                 float turn = Mathf.Min(MaxStraightTime, ctx.Box.TimeToExit(from, dir * speed));
                 // синяя сворачивает к сердцу медленнее — приходит позже белых, а не в одной куче с ними
-                float homing = types[i] == ProjectileType.Blue ? homingSpeed * 0.7f : homingSpeed;
+                // кольцо долетает к сердцу по очереди, а не всё в один миг
+                float homing = types[i] == ProjectileType.Blue ? homingSpeed * 0.6f : homingSpeed * (1f - 0.3f * i / count);
                 ctx.Spawn(types[i], new BoomMotion(from, dir, speed, turn, ctx.Target, homing), variant);
             }
         }

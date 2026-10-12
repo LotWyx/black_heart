@@ -56,7 +56,8 @@ namespace BlackHeart
 
         public bool TakeDamage(int amount)
         {
-            if (IsDead || invuln > 0 || amount <= 0) return false;
+            // каждая пуля бьёт отдельно; мигание после удара — только эффект, не неуязвимость
+            if (IsDead || amount <= 0) return false;
             Hp = Mathf.Max(CannotDie ? 1 : 0, Hp - amount);
             invuln = InvulnTime;
             GameManager.I.Pixel.Shake(0.25f);

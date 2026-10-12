@@ -18,7 +18,7 @@ namespace BlackHeart
         {
             int arms = ctx.Difficulty >= 1f ? 2 : 1;
             int count = ctx.RampInt(18f, 30f, 0f, 1.5f);
-            float dt = ctx.Ramp(0.17f, 0.1f, 0f, 1.5f);
+            float dt = ctx.Ramp(0.17f, 0.13f, 0f, 1.5f);
             float step = 0.42f * (Random.value < 0.5f ? 1 : -1);
             float duration = ctx.Ramp(3.8f, 2.9f, 0f, 1.5f);
             float spin = 0.5f * Mathf.Sign(step);

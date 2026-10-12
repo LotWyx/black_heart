@@ -68,9 +68,16 @@ namespace BlackHeart
             return result;
         }
 
-        // Есть ли спрайт/полоска в Resources/Art
-        public static bool Has(string id) =>
-            (cache.TryGetValue(id, out var s) && s != null) || Resources.Load<Sprite>(ResourcesRoot + id) != null;
+        // Есть ли спрайт/полоска в Resources/Art. Ответ запоминается: пуля спрашивает про свой вид при каждом
+        // появлении, и повторный Resources.Load (особенно для отсутствующих) давал рывки при залпах
+        static readonly Dictionary<string, bool> exists = new Dictionary<string, bool>();
+        public static bool Has(string id)
+        {
+            if (exists.TryGetValue(id, out bool known)) return known;
+            bool found = (cache.TryGetValue(id, out var s) && s != null) || Resources.Load<Sprite>(ResourcesRoot + id) != null;
+            exists[id] = found;
+            return found;
+        }
 
         // Белый квадрат 1x1 юнит — для рамки, полосок и частиц
         public static Sprite Pixel

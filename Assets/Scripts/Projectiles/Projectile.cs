@@ -107,7 +107,7 @@ namespace BlackHeart
             anim.enabled = !frozen;
             if (frozen) return;
 
-            time += Time.deltaTime;
+            time += NearHeartStep(gm, Time.deltaTime);
             transform.position = motion.Evaluate(time);
             Orient();
 
@@ -116,6 +116,18 @@ namespace BlackHeart
                 HitPlayer();
             else if (FarOffScreen(gm))
                 Kill();
+        }
+
+        // Ограничение скорости у сердца: в последних юнитах пути пуля не быстрее MaxNearSpeed, чтобы её всегда
+        // можно было успеть разрезать (рывки мухи, броски из волны и стены). Траектория та же — замедляется её «время».
+        const float SlowRadius = 3f, MaxNearSpeed = 2.6f;
+        float NearHeartStep(GameManager gm, float dt)
+        {
+            if (dt <= 0f) return dt;
+            Vector2 next = motion.Evaluate(time + dt);
+            if (Vector2.Distance(next, gm.Player.Position) > SlowRadius) return dt;
+            float speed = Vector2.Distance(next, motion.Evaluate(time)) / dt;
+            return speed > MaxNearSpeed ? dt * MaxNearSpeed / speed : dt;
         }
 
         // Кости и прочие вытянутые пули поворачиваются вслед за траекторией

@@ -36,6 +36,7 @@ namespace BlackHeart
     // Пока стена едет, кость стоит поперёк движения; в полёте смотрит на цель.
     public sealed class BoneWallMotion : IOrientedMotion
     {
+        const float Tremble = 0.5f, Pixel = 1f / 16f;
         readonly Vector2 start, slideDir, stop, flyDir;
         readonly float slideSpeed, slideTime, launchAt, launchSpeed;
 
@@ -55,7 +56,12 @@ namespace BlackHeart
         public Vector2 Evaluate(float t)
         {
             if (t < slideTime) return start + slideDir * slideSpeed * t;
-            if (t < launchAt) return stop;
+            if (t < launchAt)
+            {
+                // за полсекунды до броска кость дрожит на пиксель — живая подсказка «сейчас полетит»
+                if (launchAt - t > Tremble) return stop;
+                return stop + new Vector2(-slideDir.y, slideDir.x) * (Mathf.Sin(t * 70f) > 0f ? Pixel : -Pixel);
+            }
             return stop + flyDir * launchSpeed * (t - launchAt);
         }
 
@@ -142,7 +148,7 @@ namespace BlackHeart
     {
         readonly Vector2 start, dir, perp, target;
         readonly float speed, amplitude, frequency, stopAt, releaseAt, dashSpeed;
-        readonly Vector2 stopPoint;
+        readonly Vector2 stopPoint, releasePoint, dashDir;
 
         public WaveMotion(Vector2 start, Vector2 dir, float speed, float amplitude, float frequency,
                           float stopAt, float releaseAt, Vector2 target, float dashSpeed)
@@ -158,15 +164,20 @@ namespace BlackHeart
             this.target = target;
             this.dashSpeed = dashSpeed;
             stopPoint = Path(this.stopAt);
+            releasePoint = Hover(this.releaseAt);
+            dashDir = (target - releasePoint).normalized;
         }
+
+        // Пока волна стоит, пули покачиваются на месте (не замирают — иначе кажется, что игра зависла)
+        Vector2 Hover(float t) => stopPoint + perp * 0.18f * Mathf.Sin((t - stopAt) * 7f);
 
         Vector2 Path(float t) => start + dir * speed * t + perp * amplitude * Mathf.Sin(frequency * t);
 
         public Vector2 Evaluate(float t)
         {
             if (t < stopAt) return Path(t);
-            if (t < releaseAt) return stopPoint;
-            return stopPoint + (target - stopPoint).normalized * dashSpeed * (t - releaseAt);
+            if (t < releaseAt) return Hover(t);
+            return releasePoint + dashDir * dashSpeed * (t - releaseAt);
         }
     }
 
@@ -231,7 +242,10 @@ namespace BlackHeart
             int i = Mathf.Max(0, Mathf.FloorToInt(t / hop));
             float u = Mathf.Clamp01((t - i * hop) / (hop * Move));    // бросок занимает часть такта, дальше зависает
             u = 1f - (1f - u) * (1f - u);                             // резкий старт, торможение
-            return Vector2.Lerp(points[i], points[i + 1], u);
+            // в зависании муха жужжит на месте, а не стоит колом; на границах такта дрожь гаснет
+            float phase = (t - i * hop) / hop;
+            Vector2 buzz = new Vector2(Mathf.Sin(t * 47f), Mathf.Cos(t * 39f)) * 0.07f * Mathf.Sin(Mathf.PI * phase);
+            return Vector2.Lerp(points[i], points[i + 1], u) + buzz;
         }
     }
 }

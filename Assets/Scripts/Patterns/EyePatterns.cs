@@ -77,9 +77,11 @@ namespace BlackHeart
             }
             var types = ctx.Types(points.Count, Random.Range(2, 3 + ctx.RampInt(0f, 1f, 0.5f, 1.2f)), 0f);
             var skip = AttackContext.BlueGaps(types, true);   // по бокам от синих в контуре — просветы
+            // Контур сжимается не весь разом, а «закручиваясь»: каждая следующая точка по кругу чуть медленнее.
+            // Иначе все пули врезались бы в сердце в один момент. Синие отстают сильнее всех.
             for (int i = 0; i < points.Count; i++)
                 if (!skip[i]) ctx.Spawn(types[i], new RectRingMotion(ctx.Target, points[i], 0f, spin,
-                    types[i] == ProjectileType.Blue ? shrinkTime * 1.35f : shrinkTime));   // синие отстают от сжатия
+                    shrinkTime * (types[i] == ProjectileType.Blue ? 1.5f : 1f + 0.3f * i / points.Count)));
             yield return new WaitForSeconds(shrinkTime * 0.8f);
         }
     }
