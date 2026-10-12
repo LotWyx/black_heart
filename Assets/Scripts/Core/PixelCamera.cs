@@ -5,6 +5,8 @@ namespace BlackHeart
 {
     // Пиксельный рендер: камера рисует в маленькую текстуру, которая
     // растягивается на экран целым множителем без сглаживания.
+    // Формат строго 16:9: игровое поле всегда 320x180 пикселей (20x11.25 юнита). На экране другого
+    // формата или размера, не кратного 320x180, картинка стоит по центру, вокруг — чёрные поля.
     public class PixelCamera : MonoBehaviour
     {
         public int targetPixelHeight = 180;
@@ -17,8 +19,8 @@ namespace BlackHeart
 
         // Пиксель низкого разрешения (от левого верхнего угла) -> координаты IMGUI
         public Vector2 RtToGui(float x, float y) => new Vector2(offset.x + x * px, offset.y + y * px);
-        // Масштаб интерфейса: один пиксель шрифта = 1/180 высоты экрана
-        public int UiScale => Mathf.Max(1, Mathf.RoundToInt(Screen.height / 180f));
+        // Масштаб интерфейса совпадает с масштабом игровых пикселей
+        public int UiScale => px;
 
         RenderTexture rt;
         int px = 1, rtW, rtH, lastW, lastH;
@@ -68,12 +70,11 @@ namespace BlackHeart
         {
             lastW = Screen.width;
             lastH = Screen.height;
-            px = Mathf.Max(1, Mathf.RoundToInt(Screen.height / (float)targetPixelHeight));
-            rtW = Mathf.CeilToInt(Screen.width / (float)px);
-            rtH = Mathf.CeilToInt(Screen.height / (float)px);
-            if (rtW % 2 == 1) rtW++;
-            if (rtH % 2 == 1) rtH++;
-            offset = new Vector2((Screen.width - rtW * px) * 0.5f, (Screen.height - rtH * px) * 0.5f);
+            rtH = targetPixelHeight;
+            rtW = rtH * 16 / 9;
+            // наибольший целый множитель, при котором 16:9 целиком помещается на экран
+            px = Mathf.Max(1, Mathf.FloorToInt(Mathf.Min(Screen.width / (float)rtW, Screen.height / (float)rtH)));
+            offset = new Vector2(Mathf.Floor((Screen.width - rtW * px) * 0.5f), Mathf.Floor((Screen.height - rtH * px) * 0.5f));
 
             Release();
             rt = new RenderTexture(rtW, rtH, 16, RenderTextureFormat.ARGB32)

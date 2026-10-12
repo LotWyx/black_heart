@@ -467,7 +467,7 @@ namespace BlackHeart
             Vector2 c = gm.Pixel.WorldToGui(moonface.Position);
             float left = c.x + 32 * s, top = c.y - 24 * s;   // ниже полоски HP врага, с местом под табличку
             // Перенос по реальной ширине текста (шрифт пропорциональный)
-            float maxWidth = Mathf.Clamp(Screen.width - left - 24 * s, 60 * s, 150 * s);
+            float maxWidth = Mathf.Clamp(gm.Pixel.RtToGui(gm.Pixel.RtWidth, 0).x - left - 24 * s, 60 * s, 150 * s);
             var lines = Wrap(speech, maxWidth, s);
             float longest = 0;
             foreach (var line in lines) longest = Mathf.Max(longest, PixelFont.Width(line, s));

@@ -21,6 +21,7 @@ namespace BlackHeart
 
         // Счёт
         public static event Action<int, int, Vector2> OnScoreChanged;   // изменение, итог, мировая позиция
+        public static event Action<Vector2> OnCleanDefense;             // защита без урона; позиция надписи с очками
 
         // Враги
         public static event Action<Enemy> OnEnemySpawned;
@@ -45,6 +46,7 @@ namespace BlackHeart
         public static void RaiseSoulShattered() => OnSoulShattered?.Invoke();
 
         public static void RaiseScoreChanged(int delta, int total, Vector2 pos) => OnScoreChanged?.Invoke(delta, total, pos);
+        public static void RaiseCleanDefense(Vector2 pos) => OnCleanDefense?.Invoke(pos);
 
         public static void RaiseEnemySpawned(Enemy e) => OnEnemySpawned?.Invoke(e);
         public static void RaiseEnemyAttack(Enemy e) => OnEnemyAttack?.Invoke(e);
@@ -63,7 +65,7 @@ namespace BlackHeart
             OnGameStarted = null; OnGameOver = null; OnPhaseChanged = null;
             OnPlayerTakeDamage = null; OnPlayerHealed = null; OnPlayerDied = null;
             OnSoulCracked = null; OnSoulShattered = null;
-            OnScoreChanged = null;
+            OnScoreChanged = null; OnCleanDefense = null;
             OnEnemySpawned = null; OnEnemyAttack = null; OnEnemyTakeDamage = null;
             OnEnemyLaughed = null; OnEnemyDefeated = null;
             OnProjectileSliced = null; OnProjectileSplit = null; OnProjectileHitPlayer = null;

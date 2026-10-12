@@ -3,7 +3,8 @@ using UnityEngine;
 namespace BlackHeart
 {
     // Музыка: в главном меню и на экране проигрыша — «Music Box of Souls» (Resources/Audio/Music/MusicBoxOfSouls),
-    // в бою — «Cathedral of Blades» (Resources/Audio/Music/CathedralOfBlades). Смена трека — плавным перекрёстным затуханием.
+    // в бою — «Cathedral of Blades» (Resources/Audio/Music/CathedralOfBlades). Смена трека — плавным перекрёстным затуханием;
+    // при проигрыше — мгновенно, в тот же миг, когда у игрока кончилось здоровье.
     // Другие треки — назначьте AudioClip в полях. Если боевого файла нет — синтезированная чиптюн-петля.
     public class MusicPlayer : MonoBehaviour
     {
@@ -46,21 +47,20 @@ namespace BlackHeart
         {
             var gm = GameManager.I;
             if (gm == null) return;
-            AudioClip want = gm.CurrentState == GameManager.State.Playing ? battleTrack
-                           : gm.CurrentState == GameManager.State.Dying ? sources[active].clip   // душа трескается — не перебиваем
-                           : menuTrack;
-            if (want != null && sources[active].clip != want) SwitchTo(want);
+            AudioClip want = gm.CurrentState == GameManager.State.Playing ? battleTrack : menuTrack;
+            bool lost = gm.CurrentState == GameManager.State.Dying || gm.CurrentState == GameManager.State.GameOver;
+            if (want != null && sources[active].clip != want) SwitchTo(want, lost);
             if (fade < 1f) fade = Mathf.Min(1f, fade + Time.unscaledDeltaTime / FadeTime);
             ApplyVolume();
         }
 
-        void SwitchTo(AudioClip clip)
+        void SwitchTo(AudioClip clip, bool instant)
         {
             bool silent = sources[active].clip == null;
             active = 1 - active;
             sources[active].clip = clip;
             sources[active].Play();
-            fade = silent ? 1f : 0f;   // самый первый трек — сразу, без затухания
+            fade = silent || instant ? 1f : 0f;   // самый первый трек и трек проигрыша — сразу, без затухания
         }
 
         void ApplyVolume()

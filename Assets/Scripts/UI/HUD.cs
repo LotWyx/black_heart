@@ -49,6 +49,7 @@ namespace BlackHeart
             GameEvents.OnGameStarted += OnGameStarted;
             GameEvents.OnGameOver += OnGameOver;
             GameEvents.OnScoreChanged += OnScoreChanged;
+            GameEvents.OnCleanDefense += OnCleanDefense;
             GameEvents.OnPlayerHealed += OnPlayerHealed;
             GameEvents.OnEnemySpawned += OnEnemySpawned;
             GameEvents.OnEnemyTakeDamage += OnEnemyTakeDamage;
@@ -62,6 +63,7 @@ namespace BlackHeart
             GameEvents.OnGameStarted -= OnGameStarted;
             GameEvents.OnGameOver -= OnGameOver;
             GameEvents.OnScoreChanged -= OnScoreChanged;
+            GameEvents.OnCleanDefense -= OnCleanDefense;
             GameEvents.OnPlayerHealed -= OnPlayerHealed;
             GameEvents.OnEnemySpawned -= OnEnemySpawned;
             GameEvents.OnEnemyTakeDamage -= OnEnemyTakeDamage;
@@ -90,6 +92,10 @@ namespace BlackHeart
             Color c = delta < 0 ? Red : delta >= 50 ? Accent : Color.white;
             AddPopup(pos, delta > 0 ? "+" + delta : delta.ToString(), c, 0.7f, delta >= 50 ? 2f : 1f);
         }
+
+        // «ЧИСТО!» строкой выше очков за защиту без урона; вид тот же, что у «+100» за победу
+        void OnCleanDefense(Vector2 pos) =>
+            AddPopup(pos + Vector2.up * (10f / ArtLibrary.PPU), "ЧИСТО!", Accent, 0.7f, 2f);
 
         void OnPlayerHealed(int amount, int hp) =>
             AddPopup(gm.Player.Position + Vector2.up * 0.9f, $"+{amount} HP", Green, 1f);
@@ -155,7 +161,8 @@ namespace BlackHeart
             }
             if (gm.CurrentState == GameManager.State.Dying || gm.CurrentState == GameManager.State.Menu) return;
 
-            PixelFont.Draw($"ОЧКИ {gm.Score.Score}", 6 * s, 6 * s, s, Color.white);
+            Vector2 corner = gm.Pixel.RtToGui(0, 0);   // левый верх игрового поля (на широком экране — не край экрана)
+            PixelFont.Draw($"ОЧКИ {gm.Score.Score}", corner.x + 6 * s, corner.y + 6 * s, s, Color.white);
             DrawEnemyInfo(s);
 
             Rect box = gm.Box.HudRect;
@@ -233,10 +240,12 @@ namespace BlackHeart
         {
             var e = gm.Battle.CurrentEnemy;
             if (e == null) return;
-            float right = Screen.width - (8 + PauseMenu.IconSize + 8) * s;   // правый угол занят иконкой паузы
+            Vector2 corner = gm.Pixel.RtToGui(gm.Pixel.RtWidth, 0);   // правый верх игрового поля
+            float right = corner.x - (8 + PauseMenu.IconSize + 8) * s;   // правый угол занят иконкой паузы
+            float top = corner.y + 6 * s;
             float barW = Mathf.Clamp(e.MaxHp * 10, 30, 64);
-            DrawHealthBar(right - (barW + 2) * s, 6 * s, barW, e.Hp, e.MaxHp, trailEnemy == e ? enemyTrail : 1f, RedBar, s);   // враг — красная
-            PixelFont.Draw(e.Definition.displayName, right - (barW + 4) * s - 6 * s, 6 * s, s, Color.white, 1);
+            DrawHealthBar(right - (barW + 2) * s, top, barW, e.Hp, e.MaxHp, trailEnemy == e ? enemyTrail : 1f, RedBar, s);   // враг — красная
+            PixelFont.Draw(e.Definition.displayName, right - (barW + 4) * s - 6 * s, top, s, Color.white, 1);
         }
 
         // Полоса здоровья в пиксельном стиле. (x, y) — левый верх заливки в экранных координатах,

@@ -132,6 +132,7 @@ namespace BlackHeart
 
             SetPhase(BattlePhase.Defense);
             gm.Projectiles.BlueRush = true;
+            int hpBefore = gm.Player.Hp;
             var ctx = new AttackContext
             {
                 Difficulty = Difficulty,
@@ -167,6 +168,12 @@ namespace BlackHeart
             }
             gm.Projectiles.BlueRush = false;
             gm.Projectiles.ClearAll();
+            // Бонус за защиту без урона: надписи появляются там же, где «+100» за победу, — на месте врага
+            if (gm.Player.Hp >= hpBefore)
+            {
+                GameEvents.RaiseCleanDefense(EnemyHome());
+                gm.Score.Add(gm.Score.cleanDefense, EnemyHome());
+            }
             Turn++;
             FightTurn++;
 
