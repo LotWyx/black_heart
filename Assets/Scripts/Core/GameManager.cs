@@ -31,6 +31,7 @@ namespace BlackHeart
         public BattleBackground Background { get; private set; }
         public MainMenu Menu { get; private set; }
         public TutorialController Tutorial { get; private set; }
+        public IntroController Intro { get; private set; }
 
         float stateTime;
 
@@ -60,6 +61,7 @@ namespace BlackHeart
             Menu = Ensure<MainMenu>();
             Tutorial = Ensure<TutorialController>();
             Ensure<PauseMenu>();
+            Intro = Ensure<IntroController>();
 
             Slicer.OnSlice += HandleSlice;
             GameEvents.OnPlayerDied += HandlePlayerDied;
@@ -81,6 +83,9 @@ namespace BlackHeart
         {
             GameSettings.Apply();
             ShowMenu();
+            // вступление при каждом запуске; меню открывается резко, когда оно кончится или его пропустят
+            Menu.Hide();
+            if (!Intro.Play(() => Menu.Show())) Menu.Show();
         }
 
         // Главное меню: бой остановлен, поле и душа скрыты
