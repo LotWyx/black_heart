@@ -63,7 +63,7 @@ namespace BlackHeart
                 // синяя сворачивает к сердцу медленнее — приходит позже белых, а не в одной куче с ними
                 // кольцо долетает к сердцу по очереди, а не всё в один миг
                 float homing = types[i] == ProjectileType.Blue ? homingSpeed * 0.6f : homingSpeed * (1f - 0.3f * i / count);
-                ctx.Spawn(types[i], new BoomMotion(from, dir, speed, turn, ctx.Target, homing), variant);
+                ctx.SpawnFormation(types[i], new BoomMotion(from, dir, speed, turn, ctx.Target, homing), variant);
             }
         }
     }

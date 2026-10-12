@@ -33,9 +33,9 @@ namespace BlackHeart
                     // чтобы всё кольцо сошлось к сердцу одновременно
                     float angle = offset + Mathf.PI * 2f * i / count;
                     Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-                    float radius = ctx.Box.DistanceToEdge(ctx.Target, dir) + 0.6f;
+                    float radius = ctx.OffScreenDistance(dir);
                     var type = blue ? ProjectileType.Blue : ctx.NextType();
-                    ctx.Spawn(type, new SpiralMotion(ctx.Target, radius, angle, radius / duration, angularSpeed));
+                    ctx.Spawn(type, new SpiralMotion(ctx.Target, radius, angle, ctx.SpiralSpeed(dir, duration), angularSpeed));
                 }
             }
         }

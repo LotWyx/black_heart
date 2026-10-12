@@ -28,7 +28,6 @@ namespace BlackHeart
 
         // Скорость, с которой путь distance займёт не меньше MinReactionTime
         public float CapSpeed(float speed, float distance) => Mathf.Min(speed, distance / MinReactionTime);
-        public float MinBlueAngle = 50f;       // синие не летят рядом с остальными
 
         readonly Queue<ProjectileType> deck = new Queue<ProjectileType>();
 
@@ -68,6 +67,9 @@ namespace BlackHeart
         // variant — особый вид пули (Bone — кость Скелета, Spirit — призрак маятника)
         public Projectile Spawn(ProjectileType type, IProjectileMotion motion, string variant) =>
             Projectiles.Spawn(type, motion, 0f, false, variant);
+        // Пуля группы (стена, клетка, волна, круг): за рамкой её не видно и не разрезать
+        public Projectile SpawnFormation(ProjectileType type, IProjectileMotion motion, string variant = null) =>
+            Projectiles.Spawn(type, motion, 0f, false, variant, true);
 
         // ---------- для паттернов врагов ----------
 
@@ -154,34 +156,39 @@ namespace BlackHeart
             return new Vector2(Mathf.Cos(a), Mathf.Sin(a));
         }
 
-        // Направление прилёта, разнесённое по углу с пулями «несовместимого» цвета
-        // (синие отдельно от белых и фиолетовых)
+        // Направление прилёта. Синяя летит рядом с какой-нибудь не синей пулей (в BlueNear градусах от неё):
+        // её нужно обойти разрезом, а не просто не трогать где-то в стороне. Остальные — со случайной стороны.
+        const float BlueNearMin = 14f, BlueNearMax = 26f;
         public Vector2 DirectionFor(ProjectileType type)
         {
-            bool blue = type == ProjectileType.Blue;
-            Vector2 best = RandomDirection();
-            float bestAngle = -1f;
-            for (int i = 0; i < 16; i++)
+            if (type != ProjectileType.Blue) return RandomDirection();
+            var others = new List<Vector2>();
+            foreach (var p in Projectiles.Active)
             {
-                Vector2 d = RandomDirection();
-                float minAngle = 180f;
-                foreach (var p in Projectiles.Active)
-                {
-                    if (p == null || (p.Type == ProjectileType.Blue) == blue) continue;
-                    Vector2 rel = p.Position - Target;
-                    if (rel.sqrMagnitude > 0.01f) minAngle = Mathf.Min(minAngle, Vector2.Angle(d, rel));
-                }
-                if (minAngle >= MinBlueAngle) return d;
-                if (minAngle > bestAngle) { bestAngle = minAngle; best = d; }
+                if (p == null || !p.Alive || p.Type == ProjectileType.Blue) continue;
+                Vector2 rel = p.Position - Target;
+                if (rel.sqrMagnitude > 1f) others.Add(rel);
             }
-            return best;
+            if (others.Count == 0) return RandomDirection();
+            Vector2 near = others[Random.Range(0, others.Count)];
+            float side = Random.value < 0.5f ? 1f : -1f;
+            return Dir(Mathf.Atan2(near.y, near.x) + side * Random.Range(BlueNearMin, BlueNearMax) * Mathf.Deg2Rad);
         }
 
-        // Точка за рамкой по направлению от сердца
-        public Vector2 PointOutsideBox(Vector2 dir, float margin = 0.6f)
+        // Скорость сближения спирали: пуля стартует за экраном, но путь от края рамки до сердца занимает duration
+        public float SpiralSpeed(Vector2 dir, float duration) => (Box.DistanceToEdge(Target, dir) + 0.6f) / duration;
+
+        // Одиночные пули прилетают из-за края экрана. Расстояние от сердца до точки за экраном по направлению dir
+        public float OffScreenDistance(Vector2 dir, float margin = 1f)
         {
-            return Target + dir * (Box.DistanceToEdge(Target, dir) + margin);
+            Rect v = GameManager.I.Pixel.ViewRect;
+            dir = dir.normalized;
+            float tx = dir.x > 1e-5f ? (v.xMax - Target.x) / dir.x : dir.x < -1e-5f ? (v.xMin - Target.x) / dir.x : float.PositiveInfinity;
+            float ty = dir.y > 1e-5f ? (v.yMax - Target.y) / dir.y : dir.y < -1e-5f ? (v.yMin - Target.y) / dir.y : float.PositiveInfinity;
+            return Mathf.Min(tx, ty) + margin;
         }
+
+        public Vector2 PointOffScreen(Vector2 dir, float margin = 1f) => Target + dir.normalized * OffScreenDistance(dir, margin);
 
         // Случайная точка в рамке не ближе minDistance к сердцу (или самая дальняя из попыток)
         public Vector2 RandomPointInBox(float minDistance, float edgeMargin)

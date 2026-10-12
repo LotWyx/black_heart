@@ -20,14 +20,12 @@ namespace BlackHeart
         [System.NonSerialized] public float difficultyPerFightTurn = 0.18f;   // за каждую фазу защиты против текущего врага
         [System.NonSerialized] public float maxDifficulty = 2f;
 
-        [System.NonSerialized] public int attacksEasy = 2;
-        [System.NonSerialized] public int attacksHard = 3;
-        [System.NonSerialized] public float pauseBetweenAttacks = 0.6f;
+        [System.NonSerialized] public int attacksPerPhase = 2;   // длина фазы защиты не растёт со сложностью
+        [System.NonSerialized] public float pauseBetweenAttacks = 0.4f;
 
         [System.NonSerialized] public float specialShareEasy = 0.2f;
         [System.NonSerialized] public float specialShareMid = 0.3f;
         [System.NonSerialized] public float minReactionTime = 1.5f;
-        [System.NonSerialized] public float minBlueAngle = 50f;
 
         [System.NonSerialized] public int healOnVictory = 2;
 
@@ -52,6 +50,7 @@ namespace BlackHeart
         public void Stop()
         {
             StopAllCoroutines();
+            if (gm != null && gm.Projectiles != null) gm.Projectiles.BlueRush = false;
             SetPhase(BattlePhase.None);
         }
 
@@ -132,6 +131,7 @@ namespace BlackHeart
             while (gm.Box.IsAnimating) yield return null;
 
             SetPhase(BattlePhase.Defense);
+            gm.Projectiles.BlueRush = true;
             var ctx = new AttackContext
             {
                 Difficulty = Difficulty,
@@ -141,11 +141,10 @@ namespace BlackHeart
                 Enemy = CurrentEnemy.Definition,
                 SpecialShare = Mathf.Lerp(specialShareEasy, specialShareMid, Mathf.Clamp01(Difficulty)),
                 MinReactionTime = minReactionTime,
-                MinBlueAngle = minBlueAngle,
                 Host = this
             };
             // Серия атак: следующая начинается, когда поле почти расчищено
-            int attacks = Difficulty < 0.4f ? attacksEasy : attacksHard;
+            int attacks = attacksPerPhase;
             string last = null;
             for (int i = 0; i < attacks; i++)
             {
@@ -155,7 +154,7 @@ namespace BlackHeart
                 yield return PatternLibrary.Create(id).Run(ctx);
                 if (i < attacks - 1)
                 {
-                    yield return ctx.WaitFieldBelow(2, 8f);
+                    yield return ctx.WaitFieldBelow(3, 2.5f);   // не ждём полной расчистки: фаза защиты не затягивается
                     yield return new WaitForSeconds(pauseBetweenAttacks);
                 }
             }
@@ -166,6 +165,7 @@ namespace BlackHeart
                 timeout -= Time.deltaTime;
                 yield return null;
             }
+            gm.Projectiles.BlueRush = false;
             gm.Projectiles.ClearAll();
             Turn++;
             FightTurn++;

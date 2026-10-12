@@ -22,7 +22,7 @@ namespace BlackHeart
                 Vector2 dir = ctx.DirectionFor(type);
                 float distance = ctx.Box.DistanceToEdge(ctx.Target, dir);
                 float speed = ctx.PickSpeed(2.2f, 4.5f, distance);
-                ctx.Spawn(type, new StraightMotion(ctx.PointOutsideBox(dir), ctx.Target, speed));
+                ctx.Spawn(type, new StraightMotion(ctx.PointOffScreen(dir), ctx.Target, speed));
                 yield return new WaitForSeconds(interval);
             }
         }

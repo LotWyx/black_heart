@@ -34,8 +34,8 @@ namespace BlackHeart
         public static void Spawn(AttackContext ctx)
         {
             Vector2 dir = ctx.RandomDirection();
-            Vector2 start = ctx.PointOutsideBox(dir, 1.6f);
-            float speed = ctx.Ramp(1.3f, 1.9f, 0f, 1.5f);
+            Vector2 start = ctx.PointOffScreen(dir, 2.4f);   // с запасом на спутники
+            float speed = ctx.Ramp(1.7f, 2.2f, 0f, 1.5f);
             float arc = Random.Range(1.2f, 2.5f) * (Random.value < 0.5f ? 1 : -1);
             var center = new DrunkMotion(start, ctx.Target, speed, arc, 0.6f);
             ctx.Spawn(ProjectileType.Blue, center);
@@ -63,7 +63,7 @@ namespace BlackHeart
         {
             Rect r = ctx.Box.Current;
             float hw = Mathf.Min(5.5f, r.width / 2f - 1.2f), hh = Mathf.Min(3.1f, r.height / 2f - 0.6f);
-            float shrinkTime = ctx.Ramp(11f, 7.5f, 0f, 1.5f);
+            float shrinkTime = ctx.Ramp(6f, 5f, 0f, 1.5f);
             float spin = ctx.Ramp(0.3f, 1.3f, 0f, 1.6f) * (Random.value < 0.5f ? 1 : -1);
 
             // точки по контуру прямоугольника с равным шагом
@@ -80,8 +80,9 @@ namespace BlackHeart
             // Контур сжимается не весь разом, а «закручиваясь»: каждая следующая точка по кругу чуть медленнее.
             // Иначе все пули врезались бы в сердце в один момент. Синие отстают сильнее всех.
             for (int i = 0; i < points.Count; i++)
+                // контур вращается и углами выходит за рамку, поэтому глаза видны и там (как одиночные пули)
                 if (!skip[i]) ctx.Spawn(types[i], new RectRingMotion(ctx.Target, points[i], 0f, spin,
-                    shrinkTime * (types[i] == ProjectileType.Blue ? 1.5f : 1f + 0.3f * i / points.Count)));
+                    shrinkTime * (types[i] == ProjectileType.Blue ? 1.5f : 1f + 0.2f * i / points.Count)));
             yield return new WaitForSeconds(shrinkTime * 0.8f);
         }
     }
@@ -95,7 +96,7 @@ namespace BlackHeart
 
         public override IEnumerator Run(AttackContext ctx)
         {
-            float duration = ctx.Ramp(8f, 12f, 0f, 1.5f);
+            const float duration = 4f;   // длина атаки не растёт со сложностью — растёт только плотность
             float interval = ctx.Ramp(1.3f, 0.7f, 0f, 1.5f);
             float fiveChance = ctx.Ramp(0.25f, 0.55f, 0f, 1.5f);
             float special = ctx.Ramp(0.3f, 0.45f);
@@ -120,8 +121,8 @@ namespace BlackHeart
                     for (int i = 0; i < n; i++)
                     {
                         float a = a0 + i * 0.45f;
-                        float radius = ctx.Box.DistanceToEdge(ctx.Target, ctx.Dir(a)) + 0.6f;
-                        ctx.Spawn(groupType, new SpiralMotion(ctx.Target, radius, a, radius / dur, spin));
+                        float radius = ctx.OffScreenDistance(ctx.Dir(a));
+                        ctx.Spawn(groupType, new SpiralMotion(ctx.Target, radius, a, ctx.SpiralSpeed(ctx.Dir(a), dur), spin));
                     }
                 }
                 else
@@ -130,7 +131,7 @@ namespace BlackHeart
                     Vector2 dir = ctx.DirectionFor(type);
                     float distance = ctx.Box.DistanceToEdge(ctx.Target, dir) * 1.15f;
                     float speed = ctx.PickSpeed(1.6f, 3f, distance);
-                    ctx.Spawn(type, new DrunkMotion(ctx.PointOutsideBox(dir), ctx.Target, speed,
+                    ctx.Spawn(type, new DrunkMotion(ctx.PointOffScreen(dir), ctx.Target, speed,
                         Random.Range(1.5f, 3f) * (Random.value < 0.5f ? 1 : -1), ctx.Ramp(0.5f, 0.8f)));
                 }
                 yield return new WaitForSeconds(interval);

@@ -6,14 +6,15 @@ namespace BlackHeart
 {
     // ================= СКЕЛЕТ (враг «Череп») =================
 
-    // Стена костей: вертикальный ряд костей выезжает слева или справа, встаёт на полпути,
-    // и кости по очереди летят в сердце. Сложность сначала разгоняет стену, а когда она
-    // достигла предела — ускоряет полёт костей.
+    // Стена костей: вертикальный ряд костей выезжает слева или справа и встаёт на полпути. Все кости синие,
+    // кроме одной белой: её нужно разрубить, не задев соседние. После короткой паузы вся стена разом летит
+    // в сердце. Со сложностью растёт только скорость стены; бросок костей всегда одинаково быстрый.
     public class BoneWallPattern : AttackPattern
     {
         public const string ID = "bonewall";
         public override string Id => ID;
         const string Bone = "Bone";
+        const float LaunchSpeed = 7f, StandTime = 0.8f;
 
         public override IEnumerator Run(AttackContext ctx)
         {
@@ -22,47 +23,34 @@ namespace BlackHeart
             for (int w = 0; w < walls; w++, fromLeft = !fromLeft)
             {
                 Rect r = ctx.Box.Current;
-                float wallSpeed = ctx.Ramp(1.5f, 4.5f);                                  // растёт до сложности 1
-                float launchSpeed = Mathf.Min(7f, 3f + Mathf.Max(0f, ctx.Difficulty - 1f) * 4f);   // потом — полёт костей
-                float stagger = ctx.Ramp(0.24f, 0.12f, 0f, 1.6f);
-
+                float wallSpeed = ctx.Ramp(2f, 7f, 0f, 2f);
                 int count = Mathf.Max(5, Mathf.FloorToInt((r.height - 0.6f) / 0.85f));
-                var types = ctx.Types(count, Random.Range(2, 3 + ctx.RampInt(0f, 1f, 0.5f, 1.2f)), ctx.Ramp(0f, 0.3f, 0.2f, 1.4f));
+                int white = Random.Range(0, count);
                 float x0 = fromLeft ? r.xMin - 0.5f : r.xMax + 0.5f;
                 Vector2 slideDir = fromLeft ? Vector2.right : Vector2.left;
                 float slideDistance = Mathf.Abs(ctx.Target.x - x0) * 0.5f;
-                float slideTime = slideDistance / wallSpeed;
+                float launchAt = slideDistance / wallSpeed + StandTime;
 
-                var skip = AttackContext.BlueGaps(types, false);   // у синих костей в стене — просветы
-
-                // Порядок вылета: от краёв стены к середине, со случайной перестановкой соседей;
-                // синие кости — последними, после паузы, чтобы не лететь вплотную к белым
-                var order = new List<int>();
-                for (int i = 0; i < count; i++) if (!skip[i]) order.Add(i);
-                order.Sort((a, b) => Mathf.Abs(b - (count - 1) / 2f).CompareTo(Mathf.Abs(a - (count - 1) / 2f)));
-                for (int i = 0; i + 1 < order.Count; i += 2) if (Random.value < 0.5f) (order[i], order[i + 1]) = (order[i + 1], order[i]);
-                var blues = order.FindAll(i => types[i] == ProjectileType.Blue);
-                order.RemoveAll(i => types[i] == ProjectileType.Blue);
-                order.AddRange(blues);
-
-                for (int k = 0; k < order.Count; k++)
+                var bones = new List<Projectile>();
+                for (int i = 0; i < count; i++)
                 {
-                    int i = order[k];
-                    float y = Mathf.Lerp(r.yMin + 0.5f, r.yMax - 0.5f, count == 1 ? 0.5f : (float)i / (count - 1));
-                    var start = new Vector2(x0, y);
-                    float launchAt = slideTime + 0.35f + k * stagger + (types[i] == ProjectileType.Blue ? 0.7f : 0f);
-                    // кость стоит в стене на виду, но бросок всё равно не быстрее времени реакции
-                    float speed = ctx.CapSpeed(launchSpeed, Vector2.Distance(start + slideDir * slideDistance, ctx.Target));
-                    ctx.Spawn(types[i], new BoneWallMotion(start, slideDir, slideDistance, wallSpeed, launchAt, ctx.Target, speed), Bone);
+                    float y = Mathf.Lerp(r.yMin + 0.5f, r.yMax - 0.5f, (float)i / (count - 1));
+                    var type = i == white ? ProjectileType.White : ProjectileType.Blue;
+                    var motion = new BoneWallMotion(new Vector2(x0, y), slideDir, slideDistance, wallSpeed, launchAt, ctx.Target, LaunchSpeed);
+                    bones.Add(ctx.SpawnFormation(type, motion, Bone));
                 }
-                yield return new WaitForSeconds(slideTime + 0.35f + count * stagger * 0.7f);
+
+                // следующая стена — с другой стороны и только когда эта закончилась
+                float timeout = launchAt + 6f;
+                while (AttackContext.AliveCount(bones) > 0 && timeout > 0f) { timeout -= Time.deltaTime; yield return null; }
+                if (w < walls - 1) yield return new WaitForSeconds(0.3f);
             }
         }
     }
 
     // Клетка из костей: квадрат со стороной 6 костей катится слева и справа к сердцу, вращаясь как колесо.
     // Синих в клетке от 1 до 4, фиолетовых всего до 3. С середины сложности, когда от прошлых клеток
-    // осталось меньше половины костей, приходят клетки сверху и снизу. Скорость растёт и после максимума.
+    // клетки могут прийти сверху и снизу вместо боков. Скорость растёт и после максимума.
     public class BoneCagePattern : AttackPattern
     {
         public const string ID = "bonecage";
@@ -74,28 +62,22 @@ namespace BlackHeart
         public override IEnumerator Run(AttackContext ctx)
         {
             Rect r = ctx.Box.Current;
-            float speed = 1.0f + 0.45f * ctx.Difficulty;
+            float speed = 1.5f + 0.35f * ctx.Difficulty;   // клетка не ползёт: фаза защиты не затягивается
             float k = Mathf.Clamp01(ctx.Difficulty);
             int bluePerCage = 1 + Mathf.RoundToInt(3 * k);
             int purpleTotal = Mathf.RoundToInt(3 * k);
 
-            var bones = new List<Projectile>();
+            // Клеток всегда две. С середины сложности они могут прийти не с боков, а сверху и снизу —
+            // вместо боковых, а не в добавок к ним: длина атаки со сложностью не растёт.
             float half = (PerSide - 1) * Spacing / 2f;
+            bool vertical = ctx.Difficulty >= 0.5f && Random.value < 0.5f;
+            Vector2 axis = vertical ? Vector2.up : Vector2.right;
+            float reach = (vertical ? r.height : r.width) / 2f + half + 1f;
             int purpleLeft = purpleTotal;
-            bones.AddRange(Cage(ctx, new Vector2(r.xMin - half - 1f, ctx.Target.y), speed, bluePerCage, ref purpleLeft, 2));
+            Cage(ctx, ctx.Target - axis * reach, speed, bluePerCage, ref purpleLeft, 2);
             // вторая клетка отстаёт: клетки не сходятся у сердца одновременно и синие не тонут среди чужих костей
             float lag = speed * 1.6f;
-            bones.AddRange(Cage(ctx, new Vector2(r.xMax + half + 1f + lag, ctx.Target.y), speed, bluePerCage, ref purpleLeft, 1));
-
-            if (ctx.Difficulty >= 0.5f)
-            {
-                int spawned = bones.Count;
-                float timeout = 12f;
-                while (AttackContext.AliveCount(bones) > spawned / 2 && timeout > 0f) { timeout -= Time.deltaTime; yield return null; }
-                int purpleMore = purpleTotal;
-                Cage(ctx, new Vector2(ctx.Target.x, r.yMax + half + 1f), speed, bluePerCage, ref purpleMore, 2);
-                Cage(ctx, new Vector2(ctx.Target.x, r.yMin - half - 1f - lag), speed, bluePerCage, ref purpleMore, 1);
-            }
+            Cage(ctx, ctx.Target + axis * (reach + lag), speed, bluePerCage, ref purpleLeft, 1);
             yield return null;
         }
 
@@ -132,7 +114,7 @@ namespace BlackHeart
                     int idx = n++;
                     if (skip[idx]) continue;   // просвет рядом с синей костью
                     var motion = new CageMotion(center, ctx.Target, speed, local, boneAngle, angle0, spin);
-                    list.Add(ctx.Spawn(types[idx], motion, Bone));
+                    list.Add(ctx.SpawnFormation(types[idx], motion, Bone));
                 }
             }
             return list;
@@ -149,7 +131,7 @@ namespace BlackHeart
 
         public override IEnumerator Run(AttackContext ctx)
         {
-            float duration = ctx.Ramp(7f, 12f, 0f, 1.5f);
+            const float duration = 4f;   // длина атаки не растёт со сложностью — растёт только плотность
             float interval = ctx.Ramp(1.7f, 0.8f, 0f, 1.5f);
             float purpleShare = ctx.Ramp(0.1f, 0.5f, 0f, 1.2f);
 
@@ -176,8 +158,8 @@ namespace BlackHeart
             yield return BoomCirclePattern.Burst(ctx, BoomCirclePattern.RandomCenter(ctx), types, 2f, 2.6f);
         }
 
-        // Кучка: 3–5 белых/фиолетовых с одного направления (±20°), рядом 1–2 синих —
-        // сбоку от кучки (≈50° в сторону) и чуть позже, чтобы не лететь вплотную к белым
+        // Кучка: 3–5 белых/фиолетовых с одного направления (±20°), а по её краям (≈20° в сторону) 1–2 синих:
+        // кучку нужно разрубить, не задев их
         static IEnumerator Cluster(AttackContext ctx, float purpleShare)
         {
             int n = ctx.RampInt(3, 5, 0f, 1.4f);
@@ -192,11 +174,10 @@ namespace BlackHeart
                 if (type == ProjectileType.Blue)
                 {
                     float side = (blueIndex++ % 2 == 0) ? 1f : -1f;
-                    angle = baseAngle + side * Random.Range(0.85f, 1.05f);
-                    if (blueIndex == 1) yield return new WaitForSeconds(0.3f);
+                    angle = baseAngle + side * Random.Range(0.3f, 0.45f);
                 }
                 Vector2 dir = ctx.Dir(angle);
-                Vector2 start = ctx.PointOutsideBox(dir);
+                Vector2 start = ctx.PointOffScreen(dir);
                 float distance = ctx.Box.DistanceToEdge(ctx.Target, dir);
                 bool drunk = Random.value < 0.5f;
                 float speed = ctx.PickSpeed(drunk ? 1.6f : 2.2f, drunk ? 3f : 4.2f, distance * (drunk ? 1.15f : 1f));

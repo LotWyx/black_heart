@@ -37,8 +37,8 @@ namespace BlackHeart
                     for (int arm = 0; arm < arms; arm++)
                     {
                         float a = a0 + i * step + arm * Mathf.PI;
-                        float radius = ctx.Box.DistanceToEdge(ctx.Target, ctx.Dir(a)) + 0.6f;
-                        ctx.Spawn(types[i], new SpiralMotion(ctx.Target, radius, a, radius / duration, spin));
+                        float radius = ctx.OffScreenDistance(ctx.Dir(a));
+                        ctx.Spawn(types[i], new SpiralMotion(ctx.Target, radius, a, ctx.SpiralSpeed(ctx.Dir(a), duration), spin));
                     }
                 }
                 yield return new WaitForSeconds(dt);
@@ -79,7 +79,7 @@ namespace BlackHeart
                 // бросок от точки остановки к сердцу — не быстрее времени реакции
                 Vector2 stopPoint = start + dir * speed * stopAt;
                 float dash = ctx.CapSpeed(DashSpeed, Vector2.Distance(stopPoint, ctx.Target));
-                ctx.Spawn(types[i], new WaveMotion(start, dir, speed, 0.9f, 3.5f, stopAt, releaseAt, ctx.Target, dash));
+                ctx.SpawnFormation(types[i], new WaveMotion(start, dir, speed, 0.9f, 3.5f, stopAt, releaseAt, ctx.Target, dash));
                 yield return new WaitForSeconds(SpawnStep);
             }
             yield return new WaitForSeconds(Mathf.Max(0f, headTime - count * SpawnStep) + Pause);
@@ -97,27 +97,29 @@ namespace BlackHeart
 
         public override IEnumerator Run(AttackContext ctx)
         {
-            int volleys = ctx.Difficulty >= 1f ? 2 : 1;
+            const int volleys = 1;   // длина атаки не растёт со сложностью — растёт число призраков в залпе
             for (int v = 0; v < volleys; v++)
             {
+                // весь залп — с одной стороны: синий качается среди остальных, а не где-то напротив
+                Vector2[] sides = { Vector2.up, Vector2.down, Vector2.left, Vector2.right };
+                Vector2 side = sides[Random.Range(0, sides.Length)];
                 int count = ctx.Difficulty < 0.5f ? 1 : Random.Range(2, 2 + 1 + ctx.RampInt(0f, 2f, 0.5f, 1.5f));
                 var types = ctx.Types(count, count >= 2 ? 1 : 0, ctx.Ramp(0.1f, 0.35f));
                 types.Sort((a, b) => (a == ProjectileType.Blue).CompareTo(b == ProjectileType.Blue));   // синий — последним
                 for (int i = 0; i < count; i++)
                 {
-                    if (types[i] == ProjectileType.Blue && i > 0) yield return new WaitForSeconds(0.6f);
-                    SpawnOne(ctx, types[i]);
+                    SpawnOne(ctx, types[i], side);
                     yield return new WaitForSeconds(0.5f);
                 }
-                yield return new WaitForSeconds(ctx.Ramp(3.5f, 2.5f));
+                yield return new WaitForSeconds(1.5f);
             }
         }
 
-        public static void SpawnOne(AttackContext ctx, ProjectileType type)
+        public static void SpawnOne(AttackContext ctx, ProjectileType type, Vector2? from = null)
         {
             Vector2[] sides = { Vector2.up, Vector2.down, Vector2.left, Vector2.right };
-            Vector2 dir = sides[Random.Range(0, sides.Length)];
-            Vector2 start = ctx.PointOutsideBox(dir, 0.8f);
+            Vector2 dir = from ?? sides[Random.Range(0, sides.Length)];
+            Vector2 start = ctx.PointOffScreen(dir);
             float amplitude = ctx.Ramp(1.0f, 3.0f, 0f, 0.8f);
             float frequency = ctx.Ramp(2.0f, 5.0f, 0.8f, 1.8f);
             // по вертикали размах ограничен шириной рамки, по горизонтали — её высотой
@@ -148,7 +150,7 @@ namespace BlackHeart
         {
             Vector2 dir = ctx.DirectionFor(type);
             float hop = ctx.Ramp(0.65f, 0.45f, 0f, 1.5f);   // такт броска: на последнем рывке к сердцу должно хватить реакции
-            ctx.Spawn(type, new FlyMotion(ctx.PointOutsideBox(dir), ctx.Target, 6, hop, 2f));
+            ctx.Spawn(type, new FlyMotion(ctx.PointOffScreen(dir), ctx.Target, 6, hop, 2f));
         }
     }
 
@@ -160,7 +162,7 @@ namespace BlackHeart
 
         public override IEnumerator Run(AttackContext ctx)
         {
-            float duration = ctx.Ramp(8f, 12f, 0f, 1.5f);
+            const float duration = 4f;   // длина атаки не растёт со сложностью — растёт только плотность
             float interval = ctx.Ramp(1.5f, 0.8f, 0f, 1.5f);
             float special = Mathf.Min(0.5f, ctx.Ramp(0.2f, 0.4f));
             for (float t = 0f; t < duration; t += interval)
@@ -168,16 +170,21 @@ namespace BlackHeart
                 float roll = Random.value;
                 if (roll < 0.35f)
                 {
-                    // короткий рукав спирали
+                    // Короткий рукав спирали: белый, изредка с одной синей внутри (её соседи пропущены).
+                    // Фиолетовых в рукаве нет: целиком фиолетовый рукав со всех сторон был слишком быстрым и плотным.
                     int n = ctx.RampInt(5f, 9f);
                     float a0 = Random.Range(0f, Mathf.PI * 2f), step = 0.45f * (Random.value < 0.5f ? 1 : -1);
                     float dur = ctx.Ramp(3.8f, 3f);
-                    var armType = ctx.RollType(special);   // рукав одного цвета: синие не вплотную к белым
+                    var armTypes = ctx.Types(n, Random.value < special ? 1 : 0, 0f);
+                    var skip = AttackContext.BlueGaps(armTypes, false);
                     for (int i = 0; i < n; i++)
                     {
-                        float a = a0 + i * step;
-                        float radius = ctx.Box.DistanceToEdge(ctx.Target, ctx.Dir(a)) + 0.6f;
-                        ctx.Spawn(armType, new SpiralMotion(ctx.Target, radius, a, radius / dur, 0.5f * Mathf.Sign(step)));
+                        if (!skip[i])
+                        {
+                            float a = a0 + i * step;
+                            float radius = ctx.OffScreenDistance(ctx.Dir(a));
+                            ctx.Spawn(armTypes[i], new SpiralMotion(ctx.Target, radius, a, ctx.SpiralSpeed(ctx.Dir(a), dur), 0.5f * Mathf.Sign(step)));
+                        }
                         yield return new WaitForSeconds(0.12f);
                     }
                 }

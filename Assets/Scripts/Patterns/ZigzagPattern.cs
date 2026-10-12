@@ -22,7 +22,7 @@ namespace BlackHeart
                 // Петли удлиняют путь — дистанция больше прямой
                 float distance = ctx.Box.DistanceToEdge(ctx.Target, dir) * 1.3f;
                 float speed = ctx.PickSpeed(1.6f, 3f, distance);
-                ctx.Spawn(type, new ZigzagMotion(ctx.PointOutsideBox(dir), ctx.Target, speed, 0.7f, 6f));
+                ctx.Spawn(type, new ZigzagMotion(ctx.PointOffScreen(dir), ctx.Target, speed, 0.7f, 6f));
                 yield return new WaitForSeconds(interval);
             }
         }

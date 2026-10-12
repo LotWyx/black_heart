@@ -23,7 +23,7 @@ namespace BlackHeart
                 float distance = ctx.Box.DistanceToEdge(ctx.Target, dir) * 1.15f;
                 float speed = ctx.PickSpeed(1.6f, 3f, distance);
                 float arc = Random.Range(1.5f, 3f) * (Random.value < 0.5f ? 1 : -1);
-                ctx.Spawn(type, new DrunkMotion(ctx.PointOutsideBox(dir), ctx.Target, speed, arc, amplitude));
+                ctx.Spawn(type, new DrunkMotion(ctx.PointOffScreen(dir), ctx.Target, speed, arc, amplitude));
                 yield return new WaitForSeconds(interval);
             }
         }

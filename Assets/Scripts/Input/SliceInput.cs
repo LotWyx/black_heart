@@ -63,8 +63,13 @@ namespace BlackHeart
 
         void Update()
         {
+            var gm = GameManager.I;
             var pointer = Pointer.current;
-            bool pressed = pointer != null && pointer.press.isPressed && !GameManager.I.Paused;
+            bool pressed = pointer != null && pointer.press.isPressed && !gm.Paused;
+            Vector2 pos = pressed ? gm.Pixel.ScreenToWorld(pointer.position.ReadValue()) : Vector2.zero;
+            // В фазе защиты резать можно только внутри рамки: за ней нет ни разреза, ни его следа.
+            // Вернувшись в рамку с зажатой кнопкой, игрок начинает новый штрих.
+            if (pressed && gm.Battle.Phase == BattlePhase.Defense && !gm.Box.Current.Contains(pos)) pressed = false;
             PressedThisFrame = pressed && !IsPressed;
 
             float now = Time.time;
@@ -73,7 +78,6 @@ namespace BlackHeart
 
             if (pressed)
             {
-                Vector2 pos = GameManager.I.Pixel.ScreenToWorld(pointer.position.ReadValue());
                 if (PressedThisFrame)
                 {
                     StrokeId++;

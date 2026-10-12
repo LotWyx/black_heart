@@ -40,6 +40,7 @@ namespace BlackHeart
         readonly SpriteRenderer[,] corners = new SpriteRenderer[4, 2];
         readonly SpriteRenderer[,] notches = new SpriteRenderer[4, 2];
         SpriteRenderer fill;
+        Transform mask;   // маска в размер рамки: пули групп (стена, клетка, волна) видны только внутри неё
 
         // Фон внутри рамки: тёмная сетка из точек и крестиков, медленно ползущая по диагонали,
         // и кровавое свечение у краёв. Текстура в размер рамки, пересобирается при смене размера/сдвига.
@@ -61,6 +62,10 @@ namespace BlackHeart
         void Awake()
         {
             fill = CreatePart("Fill", Color.black, -10);
+            var maskObject = new GameObject("Mask");
+            maskObject.transform.SetParent(transform);
+            maskObject.AddComponent<SpriteMask>().sprite = ArtLibrary.Pixel;
+            mask = maskObject.transform;
             pattern = CreatePart("Pattern", Color.white, -9);
             for (int i = 0; i < 4; i++) sides[i] = CreatePart("Side", Color.white, 0);
             for (int i = 0; i < 4; i++) inner[i] = CreatePart("Inner", Accent, 0);
@@ -197,6 +202,7 @@ namespace BlackHeart
             Rect r = Snap(Current);
             float th = thicknessPx / ArtLibrary.PPU, px = 1f / ArtLibrary.PPU;
             Place(fill.transform, r.center, r.size);
+            Place(mask, r.center, r.size);
             UpdatePattern(r);
             Place(sides[0].transform, new Vector2(r.center.x, r.yMax + th / 2), new Vector2(r.width + 2 * th, th));
             Place(sides[1].transform, new Vector2(r.center.x, r.yMin - th / 2), new Vector2(r.width + 2 * th, th));

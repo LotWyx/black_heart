@@ -10,14 +10,19 @@ namespace BlackHeart
         public float Radius { get; private set; } = 0.45f;   // тело пули ~15 px (кадр 17x17 вместе с ореолом)
         public Color Color => ProjectileTypes.ColorOf(Type);
         public Vector2 Position => transform.position;
+        // Пуля группы (стена, клетка, волна, круг) видна только внутри рамки; одиночная прилетает
+        // из-за края экрана и видна везде. Разрезать любую пулю можно только внутри рамки.
+        public bool Formation { get; private set; }
 
         IProjectileMotion motion;
         float time;
-        bool dead, reverseSpin, spinning;
+        bool dead, reverseSpin, spinning, rushing, enteredFrame;
+        Vector2 offset;      // сдвиг осколка от траектории, чтобы пара не сливалась; у сердца сходит на нет
         string theme;   // враг, выпустивший пулю (Ghost, Eye, ...) — от него зависит форма пули
         string variant; // особый вид пули у паттерна (Bone, Spirit…), передаётся осколкам
         string halfId;  // осколок фиолетовой: спрайт половинки (одно привидение, один глаз, ...)
         bool flipHalf;  // второй осколок пары — зеркальная половинка
+        bool lengthwise; // половинки делят спрайт поперёк длины (кость: верх и низ), зеркалить надо по вертикали
         static bool nextHalfFlipped;
         int spawnFrame;
         SpriteAnimator anim;
@@ -25,12 +30,15 @@ namespace BlackHeart
         SpriteRenderer sr;
 
         const float FragmentInvulnerability = 0.08f;
+        const float MinFragmentGap = 0.5f;   // осколки появляются не ближе этой доли длины спрайта друг к другу
+        const float RushSpeed = 30f;         // рывок синей пули в сердце, юнитов в секунду
         const float SpinFrameTime = 0.14f;   // кадры пули — действия (зрачок, челюсть, пламя), не вращение
         static readonly int[] ReverseSpin = { 0, 3, 2, 1 };
 
         public bool Alive => !dead;
 
-        public static Projectile Create(ProjectileType type, IProjectileMotion motion, float startTime, bool fragment, string variant = null)
+        public static Projectile Create(ProjectileType type, IProjectileMotion motion, float startTime, bool fragment,
+            string variant = null, bool formation = false)
         {
             var go = new GameObject("Projectile_" + type);
             var p = go.AddComponent<Projectile>();
@@ -41,6 +49,8 @@ namespace BlackHeart
             p.sliceableAt = fragment ? Time.time + FragmentInvulnerability : 0f;
             p.reverseSpin = Random.value < 0.5f;
             p.variant = variant;
+            p.Formation = formation;
+            p.lengthwise = variant == "Bone";
             var enemy = GameManager.I.Battle.CurrentEnemy;
             if (enemy != null)
             {
@@ -53,6 +63,7 @@ namespace BlackHeart
             p.sr.sprite = ArtLibrary.Get(ArtIds.BulletSpawn);
             p.sr.color = p.Color;
             p.sr.sortingOrder = 10;
+            if (formation) p.sr.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;   // маска — рамка боя
             p.anim = go.AddComponent<SpriteAnimator>();
             p.spawnFrame = Time.frameCount;
 
@@ -76,6 +87,7 @@ namespace BlackHeart
                 crack.transform.SetParent(go.transform, false);
                 crack.sprite = ArtLibrary.Get(ArtIds.BulletCrack);
                 crack.sortingOrder = 11;
+                crack.maskInteraction = p.sr.maskInteraction;
             }
 
             go.transform.position = motion.Evaluate(startTime);
@@ -96,7 +108,8 @@ namespace BlackHeart
                 string id = halfId ?? (theme != null ? ArtIds.BulletOf(Type, theme, variant) : null);
                 if (id != null && halfId == null && variant != null && !ArtLibrary.Has(id + "_spin")) id = ArtIds.BulletOf(Type, theme);
                 if (id == null || !ArtLibrary.Has(id + "_spin")) id = ArtIds.BulletOf(Type);
-                sr.flipX = halfId != null && flipHalf;
+                sr.flipX = halfId != null && flipHalf && !lengthwise;
+                sr.flipY = halfId != null && flipHalf && lengthwise;
                 bool typed = ArtLibrary.Has(id + "_spin");
                 sr.color = typed ? Color.white : Color;
                 anim.Play(typed ? ArtLibrary.Frames(id + "_spin", id) : ArtLibrary.Frames(ArtIds.BulletSpin, ArtIds.Bullet),
@@ -107,11 +120,32 @@ namespace BlackHeart
             anim.enabled = !frozen;
             if (frozen) return;
 
+            var heart = gm.Player;
+            if (rushing)
+            {
+                RushStep(heart);
+                return;
+            }
+
             time += NearHeartStep(gm, Time.deltaTime);
-            transform.position = motion.Evaluate(time);
+            transform.position = Displaced(motion.Evaluate(time));
             Orient();
 
-            var heart = gm.Player;
+            // Пуля группы, прошедшая рамку насквозь (кости клетки мимо сердца), больше не нужна: за рамкой её
+            // не видно и не разрезать, а фаза защиты ждала бы, пока она уедет за экран
+            if (Formation)
+            {
+                Rect r = gm.Box.Current;
+                bool near = Position.x > r.xMin - Radius && Position.x < r.xMax + Radius &&
+                            Position.y > r.yMin - Radius && Position.y < r.yMax + Radius;
+                if (near && InFrame) enteredFrame = true;
+                else if (!near && enteredFrame)
+                {
+                    Kill();
+                    return;
+                }
+            }
+
             if (Vector2.Distance(Position, heart.Position) < heart.HitRadius + Radius * 0.6f)
                 HitPlayer();
             else if (FarOffScreen(gm))
@@ -130,6 +164,38 @@ namespace BlackHeart
             return speed > MaxNearSpeed ? dt * MaxNearSpeed / speed : dt;
         }
 
+        // Позиция с учётом сдвига осколка: вдали от сердца сдвиг полный, у самого сердца исчезает,
+        // так что осколок попадает туда же, куда попала бы целая пуля
+        Vector2 Displaced(Vector2 raw)
+        {
+            if (offset == Vector2.zero) return raw;
+            float k = Mathf.Clamp01((Vector2.Distance(raw, GameManager.I.Player.Position) - 0.4f) / 1.5f);
+            return raw + offset * k;
+        }
+
+        // Рывок в сердце: так уходят синие пули, когда кроме них на поле ничего не осталось
+        public void Rush()
+        {
+            if (!dead) rushing = true;
+        }
+
+        void RushStep(PlayerHeart heart)
+        {
+            Vector2 to = heart.Position - Position;
+            float step = RushSpeed * Time.deltaTime, reach = heart.HitRadius + Radius * 0.6f;
+            if (to.magnitude <= step + reach)
+            {
+                transform.position = heart.Position - to.normalized * Mathf.Min(reach * 0.5f, to.magnitude);
+                HitPlayer();
+            }
+            else transform.position = Position + to.normalized * step;
+        }
+
+        public bool InFrame => GameManager.I.Box.Current.Contains(Position);
+
+        // Видна ли пуля игроку: группа — только в рамке, одиночная — в пределах экрана
+        bool Visible => Formation ? InFrame : GameManager.I.Pixel.ViewRect.Contains(Position);
+
         // Кости и прочие вытянутые пули поворачиваются вслед за траекторией
         void Orient()
         {
@@ -145,7 +211,7 @@ namespace BlackHeart
             return p.x < v.xMin - margin || p.x > v.xMax + margin || p.y < v.yMin - margin || p.y > v.yMax + margin;
         }
 
-        public bool CanBeSliced => !dead && Time.time >= sliceableAt;
+        public bool CanBeSliced => !dead && Time.time >= sliceableAt && InFrame;
 
         public void Slice(Vector2 cutDir)
         {
@@ -175,20 +241,48 @@ namespace BlackHeart
 
         // Две новые пули продолжают траекторию: одна на спрайт впереди, другая на спрайт позади.
         // Пару кадров они неуязвимы, чтобы не разрубились тем же движением мгновенно.
+        // Сдвиг по времени ограничен расстоянием: у замершей или медленной пули (кость в стене, волна перед
+        // броском) он иначе уносил осколок на секунды вперёд и назад по траектории — вплоть до точки за экраном.
         void Split()
         {
             const float probe = 0.05f;
             float speed = Vector2.Distance(motion.Evaluate(time + probe), motion.Evaluate(time)) / probe;
             float spriteLength = sr.sprite.bounds.size.x;
             float shift = spriteLength / Mathf.Max(speed, 0.1f);
+            float ahead = SplitTime(shift, spriteLength), behind = SplitTime(-shift, spriteLength);
+
+            // Если по времени развести не вышло, осколки расходятся в стороны: кость — вдоль своей длины
+            Vector2 a = motion.Evaluate(ahead), b = motion.Evaluate(behind);
+            Vector2 axis = motion is IOrientedMotion ? (Vector2)transform.up
+                         : (a - b).sqrMagnitude > 1e-4f ? (a - b).normalized : Vector2.right;
+            float gap = Mathf.Max(0f, spriteLength * MinFragmentGap - Vector2.Dot(a - b, axis)) / 2f;
 
             var manager = GameManager.I.Projectiles;
-            manager.Spawn(ProjectileType.Purple, motion, time + shift, true, variant);
-            manager.Spawn(ProjectileType.Purple, motion, time - shift, true, variant);
+            manager.Spawn(ProjectileType.Purple, motion, ahead, true, variant, Formation).Shift(offset + axis * gap);
+            manager.Spawn(ProjectileType.Purple, motion, behind, true, variant, Formation).Shift(offset - axis * gap);
 
             Debris.Burst(Position, Color, 6, 3f);
             GameEvents.RaiseProjectileSplit(this);
             Kill();
+        }
+
+        // Момент на траектории, сдвинутый на shift, но не дальше maxDistance от текущего места пули
+        float SplitTime(float shift, float maxDistance)
+        {
+            Vector2 here = motion.Evaluate(time);
+            for (int i = 0; i < 8; i++)
+            {
+                float t = Mathf.Max(0f, time + shift);
+                if (Vector2.Distance(motion.Evaluate(t), here) <= maxDistance * 1.05f) return t;
+                shift *= 0.5f;
+            }
+            return time;
+        }
+
+        void Shift(Vector2 by)
+        {
+            offset = by;
+            transform.position = Displaced(motion.Evaluate(time));
         }
 
         void HitPlayer()
@@ -204,8 +298,11 @@ namespace BlackHeart
         public void Explode()
         {
             if (dead) return;
-            Debris.Burst(Position, Color, 8, 3f);
-            Collapse();
+            if (Visible)   // за рамкой (за экраном) пуля исчезает молча
+            {
+                Debris.Burst(Position, Color, 8, 3f);
+                Collapse();
+            }
             Kill();
         }
 
