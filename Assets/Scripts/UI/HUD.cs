@@ -183,7 +183,16 @@ namespace BlackHeart
             {
                 Vector2 g = gm.Pixel.WorldToGui(p.world);
                 var c = p.color;   // без затухания: надпись просто исчезает в конце жизни
-                PixelFont.Draw(p.text, g.x, g.y - 3.5f * s * p.scale, s * p.scale, c, 0);
+                // Пиксель шрифта всегда равен игровому: крупные цифры не увеличиваются, а становятся жирными.
+                // Тёмный контур и тень вниз — цифры читаются на любом фоне.
+                bool bold = p.scale > 1f;
+                float px = g.x - (bold ? s / 2f : 0f), py = g.y - 3.5f * s;
+                for (int k = 0; k <= (bold ? 1 : 0); k++)
+                {
+                    PixelFont.Draw(p.text, px + k * s, py + 2 * s, s, Ink, 0);
+                    foreach (var o in Outline) PixelFont.Draw(p.text, px + (o.x + k) * s, py + o.y * s, s, Ink, 0);
+                }
+                for (int k = 0; k <= (bold ? 1 : 0); k++) PixelFont.Draw(p.text, px + k * s, py, s, c, 0);
             }
         }
 
@@ -270,6 +279,9 @@ namespace BlackHeart
         // снизу и поднимающиеся искры; сверху разбитое сердце, буквы GAME OVER падают по одной;
         // затем фразы печатной машинкой и счёт в рамке как у поля боя.
         static readonly Color Blood = new Color(0.27f, 0.02f, 0.05f);
+        static readonly Color Ink = new Color(0.07f, 0.02f, 0.12f);
+        static readonly Vector2[] Outline = { new Vector2(-1, 0), new Vector2(1, 0), new Vector2(0, -1), new Vector2(0, 1),
+                                              new Vector2(-1, -1), new Vector2(1, -1), new Vector2(-1, 1), new Vector2(1, 1) };
         static readonly Color DarkRed = new Color(0.77f, 0.11f, 0.14f);
         static readonly Color Ember = new Color(1f, 0.5f, 0.2f);
         static readonly Color Gold = new Color(1f, 0.82f, 0.25f);

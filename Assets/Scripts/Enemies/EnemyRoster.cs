@@ -22,7 +22,7 @@ namespace BlackHeart
         {
             new EnemyDefinition
             {
-                displayName = "ПРИЗРАК",
+                displayName = "БЕЗЛИКИЙ",
                 spriteId = ArtIds.EnemyGhost,
                 minHp = 5, maxHp = 5,
                 patterns = new List<string> { GhostSpiralPattern.ID, GhostWavePattern.ID, PendulumPattern.ID,
@@ -32,7 +32,7 @@ namespace BlackHeart
             },
             new EnemyDefinition
             {
-                displayName = "ГЛАЗ",
+                displayName = "ВСЕВИДЯЩИЙ",
                 spriteId = ArtIds.EnemyEye,
                 minHp = 5, maxHp = 5,
                 patterns = new List<string> { EyeBoomPattern.ID, EyeRectPattern.ID, EyeStandardPattern.ID, EyeStandardPattern.ID },
@@ -41,7 +41,7 @@ namespace BlackHeart
             },
             new EnemyDefinition
             {
-                displayName = "ЧЕРЕП",
+                displayName = "ПУСТОГЛАЗЫЙ",
                 spriteId = ArtIds.EnemySkull,
                 minHp = 5, maxHp = 5,
                 patterns = new List<string> { BoneWallPattern.ID, BoneCagePattern.ID, SkullStandardPattern.ID, SkullStandardPattern.ID },

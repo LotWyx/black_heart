@@ -473,13 +473,6 @@ namespace BlackHeart
             foreach (var line in lines) longest = Mathf.Max(longest, PixelFont.Width(line, s));
             float w = longest + 14 * s, h = (lines.Count * 10 - 3 + 14) * s;
 
-            // хвостик-ступеньки к говорящему (белый, с тёмным контуром)
-            float ty = Mathf.Clamp(c.y - 12 * s, top + 4 * s, top + h - 9 * s);
-            Box(new Rect(left - 4 * s, ty + 1 * s, 5 * s, 3 * s), Ink);
-            Box(new Rect(left - 2 * s, ty, 3 * s, 5 * s), Ink);
-            Box(new Rect(left - 3 * s, ty + 2 * s, 4 * s, 1 * s), Color.white);
-            Box(new Rect(left - 1 * s, ty + 1 * s, 2 * s, 3 * s), Color.white);
-
             // панель: контур, белая рамка 2 px, тёмная заливка, красная линия внутри
             Box(new Rect(left - s, top - s, w + 2 * s, h + 2 * s), Ink);
             Box(new Rect(left, top, w, h), Color.white);
