@@ -10,8 +10,10 @@ namespace BlackHeart
 
         public const string Bullet = "Projectiles/Bullet";
         public const string BulletCrack = "Projectiles/BulletCrack";
-        // Пули по типам уже в цвете (Art/Source/gen_projectiles.lua): Projectiles/Bullet<Тип>[_spin]
+        // Пули по типам уже в цвете (Art/Source/gen_projectiles.lua): Projectiles/Bullet<Тип>[_spin];
+        // в стиле врага — Projectiles/<Враг>/Bullet<Тип>[_spin] (цвет тот же, меняется только форма)
         public static string BulletOf(ProjectileType type) => "Projectiles/Bullet" + type;
+        public static string BulletOf(ProjectileType type, string theme) => "Projectiles/" + theme + "/Bullet" + type;
 
         public const string BoomCircle = "FX/BoomCircle";
 

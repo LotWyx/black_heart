@@ -123,7 +123,8 @@ local function paintLine(out, owner, names, pts, c)
 end
 local function mirX(x) return W - 1 - x end
 local function mirPts(pts) local r = {} for i, p in ipairs(pts) do r[i] = { W - p[1], p[2] } end return r end
-local function finish(out, eyes) return L.outline(out, 1, "K"), { eyes = eyes } end
+-- Чёрный контур и снаружи белая обводка 1 px — враг не сливается с тёмным фоном
+local function finish(out, eyes) return L.outline(L.outline(out, 1, "K"), 1, "W"), { eyes = eyes } end
 
 -- Превью: кадры на фоне зала (кусок с окном), увеличение x3; rows — список рядов кадров
 local function preview(rows, path)

@@ -155,14 +155,12 @@ local idle, laugh = {}, {}
 for i, st in ipairs(IDLE) do idle[i] = (moonface(st)) end
 for i, st in ipairs(LAUGH) do laugh[i] = (moonface(st)) end
 
--- внешний контур (чёрные пиксели у пустоты) — для вспышек и силуэтов
+-- внешнее кольцо силуэта (белая обводка) — для вспышек и силуэтов
 local N4 = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
 local function outer(g)
   local set = {}
   L.each(g, function(x, y, c)
-    if c == "K" then
-      for _, o in ipairs(N4) do if not L.get(g, x + o[1], y + o[2]) then set[y * W + x] = true; break end end
-    end
+    for _, o in ipairs(N4) do if not L.get(g, x + o[1], y + o[2]) then set[y * W + x] = true; break end end
   end)
   return set
 end

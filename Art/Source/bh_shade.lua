@@ -161,10 +161,11 @@ end
 
 -- ---------- анимации из готовых кадров ----------
 
+-- Внешнее кольцо силуэта: пиксели, у которых рядом пусто (контур любого цвета — чёрный или белая обводка)
 local function outerOutline(g)
   local set = {}
   L.each(g, function(x, y, c)
-    if c == "k" then
+    do
       for _, o in ipairs(N4) do
         if not L.get(g, x + o[1], y + o[2]) then set[y * S.W + x] = true; break end
       end

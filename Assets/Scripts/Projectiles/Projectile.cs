@@ -14,6 +14,7 @@ namespace BlackHeart
         IProjectileMotion motion;
         float time;
         bool dead, reverseSpin, spinning;
+        string theme;   // враг, выпустивший пулю (Ghost, Eye, ...) — от него зависит форма пули
         int spawnFrame;
         SpriteAnimator anim;
         float sliceableAt;    // до этого момента пулю нельзя разрубить (пара кадров у осколков)
@@ -33,6 +34,12 @@ namespace BlackHeart
             p.IsFragment = fragment;
             p.sliceableAt = fragment ? Time.time + FragmentInvulnerability : 0f;
             p.reverseSpin = Random.value < 0.5f;
+            var enemy = GameManager.I.Battle.CurrentEnemy;
+            if (enemy != null)
+            {
+                string id = enemy.Definition.spriteId;
+                p.theme = id.Substring(id.LastIndexOf('/') + 1);
+            }
 
             // Первый кадр — белая вспышка появления, дальше покадровое вращение
             p.sr = go.AddComponent<SpriteRenderer>();
@@ -68,8 +75,9 @@ namespace BlackHeart
             if (!spinning && Time.frameCount > spawnFrame)
             {
                 spinning = true;
-                // Цветной спрайт своего типа; если его нет — общий серый, перекрашенный в цвет типа
-                string id = ArtIds.BulletOf(Type);
+                // Форма врага → цветная по типу → общая серая, перекрашенная в цвет типа
+                string id = theme != null ? ArtIds.BulletOf(Type, theme) : null;
+                if (id == null || !ArtLibrary.Has(id + "_spin")) id = ArtIds.BulletOf(Type);
                 bool typed = ArtLibrary.Has(id + "_spin");
                 sr.color = typed ? Color.white : Color;
                 anim.Play(typed ? ArtLibrary.Frames(id + "_spin", id) : ArtLibrary.Frames(ArtIds.BulletSpin, ArtIds.Bullet),

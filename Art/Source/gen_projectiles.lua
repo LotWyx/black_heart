@@ -104,6 +104,121 @@ for name, frames in pairs(typed) do
   L.save("Projectiles/Bullet" .. name .. "_spin", frames, { 0.06 })
 end
 
+-- ---------- пули в стиле врага: Projectiles/<Враг>/Bullet<Тип>[_spin] ----------
+-- Цвет по-прежнему задаёт тип (белая / фиолетовая / синяя) — меняется только форма под врага.
+-- У фиолетовых всегда есть шов-трещина: подсказка, что пуля расколется.
+local RAMPS = {
+  White = { "wb1", "wb2", "wb3", "wb4" },
+  Purple = { "pb1", "pb2", "pb3", "pb4" },
+  Blue = { "bb1", "bb2", "bb3", "bb4" },
+}
+
+local function seam(g, r, f)
+  local a = math.rad(45 + (f or 0) * 45)
+  for t = -4, 4, 0.5 do
+    local x, y = math.floor(4.5 + math.cos(a) * t + 0.5), math.floor(4.5 + math.sin(a) * t + 0.5)
+    if L.get(g, x, y) and L.get(g, x, y) ~= "K" then L.set(g, x, y, r[1]) end
+  end
+end
+
+-- Призрак: блуждающий огонёк с глазками, язычок пламени колышется
+local WISP_TOP = {
+  { "....4...", "...43...", "..3443..", ".334433." },
+  { "...4....", "...34...", "..3443..", ".334433." },
+  { ".....4..", "....34..", "..3443..", ".334433." },
+  { "....4...", "..4.34..", "..3443..", ".334433." },
+}
+local WISP_BOTTOM = { "33444433", "33k44k33", "33333332", ".222222." }
+local function wisp(r, f)
+  local g = L.grid(10, 10)
+  local map = { ["2"] = r[2], ["3"] = r[3], ["4"] = r[4], k = "K" }
+  local rows = {}
+  for _, row in ipairs(WISP_TOP[f + 1]) do rows[#rows + 1] = row end
+  for _, row in ipairs(WISP_BOTTOM) do rows[#rows + 1] = row end
+  for y, row in ipairs(rows) do for x = 1, #row do
+    local ch = row:sub(x, x)
+    if ch ~= "." then L.set(g, x, y, map[ch]) end
+  end end
+  if r == RAMPS.Purple then seam(g, r, 0) end
+  return L.outline(g, 1, "K")
+end
+
+-- Глаз: глазное яблоко цвета типа, тёмная радужка, зрачок смотрит по сторонам
+local function eyeball(r, f)
+  local g = L.grid(10, 10)
+  for y = 1, 8 do for x = 1, 8 do
+    local dx, dy = x + 0.5 - 5, y + 0.5 - 5
+    if dx * dx + dy * dy <= 15 then L.set(g, x, y, (dx + dy > 3) and r[2] or r[3]) end
+  end end
+  local look = ({ { 0, 0 }, { 1, 0 }, { 0, 1 }, { -1, 0 } })[f + 1]
+  local ix, iy = 4 + look[1], 4 + look[2]
+  for _, p in ipairs({ { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 }, { -1, 0 }, { 2, 1 }, { 0, -1 }, { 1, 2 } }) do
+    if L.get(g, ix + p[1], iy + p[2]) then L.set(g, ix + p[1], iy + p[2], r[1]) end
+  end
+  L.set(g, ix, iy, "K"); L.set(g, ix + 1, iy, "K"); L.set(g, ix, iy + 1, "K"); L.set(g, ix + 1, iy + 1, "K")
+  L.set(g, 2, 3, r[4]); L.set(g, 3, 2, r[4])
+  if r == RAMPS.Purple then seam(g, r, 2) end
+  return L.outline(g, 1, "K")
+end
+
+-- Череп: маленький череп, клацает челюстью
+local SKULL = {
+  "..4444..",
+  ".444443.",
+  "44444433",
+  "4kk44kk3",
+  "4kk44kk3",
+  ".44k443.",
+  "..3333..",
+}
+local function skullBullet(r, f)
+  local g = L.grid(10, 10)
+  local map = { ["4"] = r[3], ["3"] = r[2], k = "K" }
+  for y, row in ipairs(SKULL) do for x = 1, #row do
+    local ch = row:sub(x, x)
+    if ch ~= "." then L.set(g, x, y, map[ch]) end
+  end end
+  for x = 3, 6 do L.set(g, x, 8, r[2]) end                    -- челюсть
+  if f % 2 == 1 then
+    for x = 3, 6 do L.set(g, x, 7, "K") end                   -- клац: рот открыт
+  else
+    for x = 3, 6, 2 do L.set(g, x, 7, "K") end                -- зубы
+  end
+  L.set(g, 2, 2, r[4]); L.set(g, 3, 1, r[4])
+  if r == RAMPS.Purple then seam(g, r, 0) end
+  return L.outline(g, 1, "K")
+end
+
+-- Луноликий: полумесяц, поворачивается на 90° каждый кадр, на кончике искорка
+local function crescent(r, f)
+  local g = L.grid(10, 10)
+  local a = math.rad(-45 + f * 90)
+  local ox, oy = math.cos(a) * 2.8, math.sin(a) * 2.8
+  for y = 1, 8 do for x = 1, 8 do
+    local dx, dy = x + 0.5 - 5, y + 0.5 - 5
+    local ex, ey = dx - ox, dy - oy
+    if dx * dx + dy * dy <= 15 and ex * ex + ey * ey > 7 then
+      L.set(g, x, y, (dx * ox + dy * oy < -3) and r[3] or r[2])
+    end
+  end end
+  -- светлая кромка по внешней дуге
+  L.each(g, function(x, y)
+    local dx, dy = x + 0.5 - 5, y + 0.5 - 5
+    if dx * dx + dy * dy > 10 and dx * ox + dy * oy < -1 then L.set(g, x, y, r[4]) end
+  end)
+  if r == RAMPS.Purple then seam(g, r, f * 2) end
+  return L.outline(g, 1, "K")
+end
+
+local THEMES = { Ghost = wisp, Eye = eyeball, Skull = skullBullet, Moonface = crescent }
+for theme, draw in pairs(THEMES) do
+  for tname, ramp in pairs(RAMPS) do
+    local frames = { draw(ramp, 0), draw(ramp, 1), draw(ramp, 2), draw(ramp, 3) }
+    L.save("Projectiles/" .. theme .. "/Bullet" .. tname, { frames[1] })
+    L.save("Projectiles/" .. theme .. "/Bullet" .. tname .. "_spin", frames, { 0.06 })
+  end
+end
+
 -- Вспышка появления: белый квадрат 6x6 со срезанными углами + контур
 local spawn = L.grid(10, 10)
 L.rect(spawn, 2, 2, 7, 7, "W")
