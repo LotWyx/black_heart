@@ -7,7 +7,7 @@ namespace BlackHeart
     {
         public ProjectileType Type { get; private set; }
         public bool IsFragment { get; private set; }     // осколок фиолетовой пули
-        public float Radius { get; private set; } = 0.3f;
+        public float Radius { get; private set; } = 0.45f;   // тело пули ~15 px (кадр 17x17 вместе с ореолом)
         public Color Color => ProjectileTypes.ColorOf(Type);
         public Vector2 Position => transform.position;
 
@@ -15,13 +15,16 @@ namespace BlackHeart
         float time;
         bool dead, reverseSpin, spinning;
         string theme;   // враг, выпустивший пулю (Ghost, Eye, ...) — от него зависит форма пули
+        string halfId;  // осколок фиолетовой: спрайт половинки (одно привидение, один глаз, ...)
+        bool flipHalf;  // второй осколок пары — зеркальная половинка
+        static bool nextHalfFlipped;
         int spawnFrame;
         SpriteAnimator anim;
         float sliceableAt;    // до этого момента пулю нельзя разрубить (пара кадров у осколков)
         SpriteRenderer sr;
 
         const float FragmentInvulnerability = 0.08f;
-        const float SpinFrameTime = 0.06f;
+        const float SpinFrameTime = 0.14f;   // кадры пули — действия (зрачок, челюсть, пламя), не вращение
         static readonly int[] ReverseSpin = { 0, 3, 2, 1 };
 
         public static Projectile Create(ProjectileType type, IProjectileMotion motion, float startTime, bool fragment)
@@ -49,7 +52,20 @@ namespace BlackHeart
             p.anim = go.AddComponent<SpriteAnimator>();
             p.spawnFrame = Time.frameCount;
 
-            if (fragment)
+            // Осколок фиолетовой распадается на половинки своего врага; если их нет — копия с трещиной
+            if (fragment && type == ProjectileType.Purple)
+            {
+                string half = (p.theme != null ? ArtIds.BulletOf(type, p.theme) : ArtIds.BulletOf(type)) + "Half";
+                if (!ArtLibrary.Has(half + "_spin")) half = ArtIds.BulletOf(type) + "Half";
+                if (ArtLibrary.Has(half + "_spin"))
+                {
+                    p.halfId = half;
+                    p.flipHalf = nextHalfFlipped;   // осколки рождаются парами: левый, затем правый
+                    nextHalfFlipped = !nextHalfFlipped;
+                }
+            }
+
+            if (fragment && p.halfId == null)
             {
                 var crack = new GameObject("Crack").AddComponent<SpriteRenderer>();
                 crack.transform.SetParent(go.transform, false);
@@ -76,8 +92,9 @@ namespace BlackHeart
             {
                 spinning = true;
                 // Форма врага → цветная по типу → общая серая, перекрашенная в цвет типа
-                string id = theme != null ? ArtIds.BulletOf(Type, theme) : null;
+                string id = halfId ?? (theme != null ? ArtIds.BulletOf(Type, theme) : null);
                 if (id == null || !ArtLibrary.Has(id + "_spin")) id = ArtIds.BulletOf(Type);
+                sr.flipX = halfId != null && flipHalf;
                 bool typed = ArtLibrary.Has(id + "_spin");
                 sr.color = typed ? Color.white : Color;
                 anim.Play(typed ? ArtLibrary.Frames(id + "_spin", id) : ArtLibrary.Frames(ArtIds.BulletSpin, ArtIds.Bullet),

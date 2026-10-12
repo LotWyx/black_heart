@@ -23,7 +23,7 @@ namespace BlackHeart
         public event Action OnDefeated;
 
         const float IdleFrameTime = 0.4f;        // покой из 2 кадров (база + сдвиг)
-        const float IdleFrameTimeLong = 0.22f;   // покой из 3+ поз — кадры чаще, движение плавнее
+        const float IdleFrameTimeLong = 0.3f;    // покой из 3+ поз — кадры чаще, движение плавнее
         const float WindupFrameTime = 0.1f;
         const float FlashFrameTime = 0.05f;
         const float LaughFrameTime = 0.1f;
