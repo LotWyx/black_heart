@@ -49,8 +49,8 @@ namespace BlackHeart
     }
 
     // Клетка из костей: квадрат со стороной 6 костей катится слева и справа к сердцу, вращаясь как колесо.
-    // Синих в клетке от 1 до 4, фиолетовых всего до 3. С середины сложности, когда от прошлых клеток
-    // клетки могут прийти сверху и снизу вместо боков. Скорость растёт и после максимума.
+    // Синих в клетке от 1 до 3, фиолетовых всего до 3 (и те и другие — с ростом сложности). С середины
+    // сложности клетки могут прийти сверху и снизу вместо боков. Скорость растёт и после максимума.
     public class BoneCagePattern : AttackPattern
     {
         public const string ID = "bonecage";
@@ -63,9 +63,8 @@ namespace BlackHeart
         {
             Rect r = ctx.Box.Current;
             float speed = 1.5f + 0.35f * ctx.Difficulty;   // клетка не ползёт: фаза защиты не затягивается
-            float k = Mathf.Clamp01(ctx.Difficulty);
-            int bluePerCage = 1 + Mathf.RoundToInt(3 * k);
-            int purpleTotal = Mathf.RoundToInt(3 * k);
+            int bluePerCage = 1 + Mathf.RoundToInt(3 * Mathf.Clamp01(ctx.Difficulty - 0.3f));   // до 0.3 — одна синяя
+            int purpleTotal = Mathf.RoundToInt(3 * Mathf.Clamp01((ctx.Difficulty - 0.3f) / 0.7f));  // фиолетовые с 0.3
 
             // Клеток всегда две. С середины сложности они могут прийти не с боков, а сверху и снизу —
             // вместо боковых, а не в добавок к ним: длина атаки со сложностью не растёт.
@@ -76,7 +75,7 @@ namespace BlackHeart
             int purpleLeft = purpleTotal;
             Cage(ctx, ctx.Target - axis * reach, speed, bluePerCage, ref purpleLeft, 2);
             // вторая клетка отстаёт: клетки не сходятся у сердца одновременно и синие не тонут среди чужих костей
-            float lag = speed * 1.6f;
+            float lag = speed * ctx.Ramp(3f, 1.6f);   // на низкой сложности клетки приходят по очереди, а не почти разом
             Cage(ctx, ctx.Target + axis * (reach + lag), speed, bluePerCage, ref purpleLeft, 1);
             yield return null;
         }
@@ -84,6 +83,7 @@ namespace BlackHeart
         // Одна клетка: 20 костей по контуру квадрата. purpleCages — на сколько клеток ещё делятся фиолетовые
         static List<Projectile> Cage(AttackContext ctx, Vector2 center, float speed, int blue, ref int purpleLeft, int purpleCages)
         {
+            bool sparse = ctx.Difficulty < 0.5f;
             int perimeter = (PerSide - 1) * 4;
             int purple = purpleCages <= 1 ? purpleLeft : Random.Range(0, purpleLeft + 1);
             purpleLeft -= purple;
@@ -113,6 +113,8 @@ namespace BlackHeart
                     Vector2 local = Vector2.Lerp(a, b, (float)j / (PerSide - 1));
                     int idx = n++;
                     if (skip[idx]) continue;   // просвет рядом с синей костью
+                    // на низкой сложности каркас редкий: белые кости через одну (углы остаются — клетку видно)
+                    if (sparse && j % 2 == 1 && types[idx] == ProjectileType.White) continue;
                     var motion = new CageMotion(center, ctx.Target, speed, local, boneAngle, angle0, spin);
                     list.Add(ctx.SpawnFormation(types[idx], motion, Bone));
                 }
@@ -122,8 +124,8 @@ namespace BlackHeart
     }
 
     // Стандартная атака Скелета: кучки черепов вперемешку с редкими костями, прямо и «пьяно».
-    // Рядом с каждой кучкой — 1–2 синих. Растут частота кучек, длительность и доля фиолетовых (до 50%).
-    // Иногда (1–2 раза за атаку) посреди всего взрывается бум-круг из черепов.
+    // Рядом с каждой кучкой синие (на низкой сложности одна и в стороне). Растут частота кучек и доля
+    // фиолетовых (с нуля до 50%). С середины сложности посреди всего взрывается бум-круг из черепов.
     public class SkullStandardPattern : AttackPattern
     {
         public const string ID = "skull_std";
@@ -132,15 +134,16 @@ namespace BlackHeart
         public override IEnumerator Run(AttackContext ctx)
         {
             const float duration = 4f;   // длина атаки не растёт со сложностью — растёт только плотность
-            float interval = ctx.Ramp(1.7f, 0.8f, 0f, 1.5f);
-            float purpleShare = ctx.Ramp(0.1f, 0.5f, 0f, 1.2f);
+            float interval = ctx.Ramp(2.4f, 0.8f, 0f, 1.5f);           // на низкой сложности кучки редкие
+            float purpleShare = ctx.Ramp(0f, 0.5f, 0.2f, 1.2f);        // фиолетовые — только с ростом сложности
 
-            // бум-круги в случайные моменты атаки
-            if (Random.value < ctx.Ramp(0.35f, 0.8f))
-            {
-                int booms = Random.value < ctx.Ramp(0.2f, 0.6f) ? 2 : 1;
-                for (int b = 0; b < booms; b++) ctx.Host.StartCoroutine(DelayedBoom(ctx, Random.Range(1f, duration - 1.5f), purpleShare));
-            }
+            // бум-круги в случайные моменты атаки: на низкой сложности их нет, второй — только на высокой
+            int booms = 0;
+            if (Random.value < ctx.Ramp(0f, 0.8f, 0.3f, 1.2f))
+                booms = Random.value < ctx.Ramp(0f, 0.6f, 0.9f, 1.6f) ? 2 : 1;
+            int running = booms;
+            for (int b = 0; b < booms; b++)
+                ctx.Host.StartCoroutine(Done(DelayedBoom(ctx, Random.Range(1f, duration - 1.5f), purpleShare), () => running--));
 
             float t = 0f;
             while (t < duration)
@@ -149,6 +152,14 @@ namespace BlackHeart
                 yield return new WaitForSeconds(interval);
                 t += interval + 0.4f;
             }
+            // атака заканчивается вместе с бум-кругами — иначе они взрываются уже посреди следующей атаки
+            while (running > 0) yield return null;
+        }
+
+        static IEnumerator Done(IEnumerator routine, System.Action onDone)
+        {
+            yield return routine;
+            onDone();
         }
 
         static IEnumerator DelayedBoom(AttackContext ctx, float delay, float purpleShare)
@@ -158,23 +169,26 @@ namespace BlackHeart
             yield return BoomCirclePattern.Burst(ctx, BoomCirclePattern.RandomCenter(ctx), types, 2f, 2.6f);
         }
 
-        // Кучка: 3–5 белых/фиолетовых с одного направления (±20°), а по её краям (≈20° в сторону) 1–2 синих:
-        // кучку нужно разрубить, не задев их
+        // Кучка: 3–5 белых/фиолетовых с одного направления, а по её краям синие: кучку нужно разрубить,
+        // не задев их. На низкой сложности кучка узкая, синяя одна и летит заметно в стороне;
+        // со сложностью синих больше и они прижимаются к кучке.
         static IEnumerator Cluster(AttackContext ctx, float purpleShare)
         {
             int n = ctx.RampInt(3, 5, 0f, 1.4f);
-            int blue = Random.value < 0.3f ? 1 : 2 + (Random.value < ctx.Ramp(0f, 0.4f, 0.6f, 1.5f) ? 1 : 0);
+            int blue = 1 + (Random.value < ctx.Ramp(0f, 0.7f, 0.4f, 1.2f) ? 1 : 0) + (Random.value < ctx.Ramp(0f, 0.4f, 0.9f, 1.6f) ? 1 : 0);
+            float spread = ctx.Ramp(0.18f, 0.35f, 0f, 1.2f);                                   // разброс кучки, рад
+            float blueMin = ctx.Ramp(0.75f, 0.42f, 0f, 1.4f), blueMax = blueMin + 0.15f;      // отступ синих от центра кучки
             var types = ctx.Types(n, 0, purpleShare);
             for (int i = 0; i < blue; i++) types.Add(ProjectileType.Blue);
             float baseAngle = Random.Range(0f, Mathf.PI * 2f);
             int blueIndex = 0;
             foreach (var type in types)
             {
-                float angle = baseAngle + Random.Range(-0.35f, 0.35f);
+                float angle = baseAngle + Random.Range(-spread, spread);
                 if (type == ProjectileType.Blue)
                 {
                     float side = (blueIndex++ % 2 == 0) ? 1f : -1f;
-                    angle = baseAngle + side * Random.Range(0.3f, 0.45f);
+                    angle = baseAngle + side * Random.Range(blueMin, blueMax);
                 }
                 Vector2 dir = ctx.Dir(angle);
                 Vector2 start = ctx.PointOffScreen(dir);

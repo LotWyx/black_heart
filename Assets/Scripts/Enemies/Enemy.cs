@@ -114,7 +114,8 @@ namespace BlackHeart
             busy = true;
             bool done = false;
             anim.Play(windup, WindupFrameTime, false, () => done = true);
-            while (!done) yield return null;
+            // ждём конца замаха; если его перебила другая анимация — не висим вечно
+            while (!done && anim.Frames == windup) yield return null;
             yield return new WaitForSeconds(WindupFrameTime);
         }
 
@@ -165,7 +166,7 @@ namespace BlackHeart
             busy = true;
             anim.Play(laugh, LaughFrameTime);
             yield return new WaitForSeconds(1.2f);
-            PlayIdle();
+            if (anim.Frames == laugh) PlayIdle();   // не затираем замах или удар, начавшиеся за это время
         }
 
         // Злость: красный контур и тряска
@@ -175,7 +176,7 @@ namespace BlackHeart
             shake = 0.3f;
             anim.Play(angry, 0.08f);
             yield return new WaitForSeconds(duration);
-            PlayIdle();
+            if (anim.Frames == angry) PlayIdle();
         }
 
         // Уход со сцены (без события поражения): силуэт → полоса → точка
@@ -184,7 +185,7 @@ namespace BlackHeart
             busy = true;
             bool done = false;
             anim.Play(vanish, 0.07f, false, () => done = true);
-            while (!done) yield return null;
+            while (!done && anim.Frames == vanish) yield return null;
             Debris.Burst(Position, Color.white, 20, 6f);
             yield return new WaitForSeconds(0.07f);
             sr.enabled = false;
@@ -202,7 +203,7 @@ namespace BlackHeart
 
             bool done = false;
             anim.Play(defeat, FlashFrameTime, false, () => done = true, DefeatSequence);
-            while (!done) yield return null;
+            while (!done && anim.Frames == defeat) yield return null;
             Debris.Burst(Position, Color.white, 30, 7f);
             yield return new WaitForSeconds(FlashFrameTime);
             sr.enabled = false;

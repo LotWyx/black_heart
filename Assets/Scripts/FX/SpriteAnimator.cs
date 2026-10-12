@@ -16,6 +16,7 @@ namespace BlackHeart
         Action onDone;
 
         public bool IsPlaying => playing;
+        public Sprite[] Frames => frames;   // что сейчас играет (чтобы не перебить чужую анимацию)
 
         void Awake() => sr = GetComponent<SpriteRenderer>();
 

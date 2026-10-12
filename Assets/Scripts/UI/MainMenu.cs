@@ -20,7 +20,7 @@ namespace BlackHeart
         static readonly Color Empty = Hex(0x2E2830);
 
         static readonly string[] MainItems = { "ОБУЧЕНИЕ", "НАЧАТЬ ИГРУ", "РЕКОРД", "НАСТРОЙКИ", "ВЫХОД" };
-        static readonly string[] VolumeLabels = { "ГРОМКОСТЬ ЗВУКА", "МУЗЫКА" };
+        static readonly string[] VolumeLabels = { "ГРОМКОСТЬ ЗВУКА", "ГРОМКОСТЬ МУЗЫКИ" };
         const float VolumeStep = 0.1f;
 
         public bool IsOpen { get; private set; }
@@ -314,12 +314,42 @@ namespace BlackHeart
             float x = ColumnX - frameWidth / 2;
             if (sel)
             {
-                Box(R(x, y - 4, frameWidth, 15), new Color(0, 0, 0, 0.55f));
-                Frame(x, y - 4, frameWidth, 15, White);
-                Ornaments(x, y - 4, frameWidth, 15);
+                SelectFrame(x, y - 4, frameWidth, 15);
             }
             Text(text, ColumnX, y, 1, sel ? White : Gray);
             if (repaint) items.Add(R(x, y - 4, frameWidth, 15));
+        }
+
+        // Плашка выбранного пункта в стиле рамки боя: тень, тёмная подложка с кровавым отсветом слева,
+        // белая рамка со срезанными углами, красная линия внутри (мягко пульсирует), заклёпки в углах
+        // и красные завитки по бокам
+        void SelectFrame(float x, float y, float w, float h)
+        {
+            Box(R(x + 1, y + 1, w, h), new Color(0, 0, 0, 0.5f));                       // тень
+            Box(R(x, y, w, h), new Color(0.02f, 0.01f, 0.02f, 0.82f));                    // подложка
+            for (int i = 0; i < 6; i++)                                                   // отсвет слева ступенями
+                Box(R(x + 1 + i * 6, y + 1, 6, h - 2), new Color(Blood.r, Blood.g, Blood.b, 0.55f * (1f - i / 6f)));
+            for (int i = 0; i < 6; i++)                                                   // и справа, слабее
+                Box(R(x + w - 7 - i * 6, y + 1, 6, h - 2), new Color(Blood.r, Blood.g, Blood.b, 0.3f * (1f - i / 6f)));
+
+            // белая рамка со срезанными углами
+            Box(R(x + 1, y, w - 2, 1), White); Box(R(x + 1, y + h - 1, w - 2, 1), White);
+            Box(R(x, y + 1, 1, h - 2), White); Box(R(x + w - 1, y + 1, 1, h - 2), White);
+
+            // красная линия внутри — пульсирует ступенями
+            float pulse = Mathf.Floor(Mathf.PingPong(Time.unscaledTime * 2f, 1f) * 3f) / 3f;
+            var accent = Color.Lerp(DarkRed, Red, pulse);
+            Box(R(x + 2, y + 2, w - 4, 1), accent); Box(R(x + 2, y + h - 3, w - 4, 1), accent);
+            Box(R(x + 2, y + 3, 1, h - 6), accent); Box(R(x + w - 3, y + 3, 1, h - 6), accent);
+
+            // заклёпки-ромбики в углах, как у рамки боя
+            foreach (var c in new[] { new Vector2(x, y), new Vector2(x + w - 1, y), new Vector2(x, y + h - 1), new Vector2(x + w - 1, y + h - 1) })
+            {
+                Box(R(c.x, c.y, 1, 1), Red);
+                Box(R(c.x - 1, c.y, 1, 1), DarkRed); Box(R(c.x + 1, c.y, 1, 1), DarkRed);
+                Box(R(c.x, c.y - 1, 1, 1), DarkRed); Box(R(c.x, c.y + 1, 1, 1), DarkRed);
+            }
+            Ornaments(x, y, w, h);
         }
 
         // Красные пиксельные завитки по бокам рамки выбранного пункта (справа как есть, слева зеркально)
@@ -382,9 +412,7 @@ namespace BlackHeart
                 float x = ColumnX - fw / 2;
                 if (sel)
                 {
-                    Box(R(x, y - 4, fw, 26), new Color(0, 0, 0, 0.55f));
-                    Frame(x, y - 4, fw, 26, White);
-                    Ornaments(x, y - 4, fw, 26);
+                    SelectFrame(x, y - 4, fw, 26);
                 }
                 Text(VolumeLabels[i], ColumnX, y, 1, sel ? White : Gray);
 

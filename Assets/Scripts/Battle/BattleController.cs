@@ -13,6 +13,7 @@ namespace BlackHeart
         [System.NonSerialized] public List<EnemyDefinition> enemies = EnemyRoster.CreateDefaults();
 
         [System.NonSerialized] public float attackWindow = 3f;          // сколько секунд даётся на удар по врагу
+        [System.NonSerialized] public int missedAttackDamage = 1;       // урон игроку, если за фазу атаки он не ударил врага
         [System.NonSerialized] public float defenseTimeout = 25f;       // страховка, если пуля где-то застряла
         [System.NonSerialized] public float topHudSpace = 0.4f;         // отступ сверху (надписи HUD в углах, враг по центру)
 
@@ -155,7 +156,10 @@ namespace BlackHeart
                 yield return PatternLibrary.Create(id).Run(ctx);
                 if (i < attacks - 1)
                 {
-                    yield return ctx.WaitFieldBelow(3, 2.5f);   // не ждём полной расчистки: фаза защиты не затягивается
+                    // не ждём полной расчистки, чтобы фаза защиты не затягивалась; но на низкой сложности
+                    // следующая атака не наслаивается на хвост предыдущей
+                    float d01 = Mathf.Clamp01(Difficulty);
+                    yield return ctx.WaitFieldBelow(d01 < 0.6f ? 1 : 3, Mathf.Lerp(4f, 2.5f, d01));
                     yield return new WaitForSeconds(pauseBetweenAttacks);
                 }
             }
@@ -201,7 +205,9 @@ namespace BlackHeart
             }
             else
             {
+                // не атаковал — враг смеётся и сам наносит урон
                 SetPhase(BattlePhase.Laugh);
+                gm.Player.TakeDamage(missedAttackDamage);
                 yield return CurrentEnemy.Laugh();
             }
         }
