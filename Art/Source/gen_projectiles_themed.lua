@@ -415,6 +415,60 @@ local function moonBlue(r, f)
   return finish(out, r)
 end
 
+-- ================= особые виды пуль у паттернов =================
+-- Кость (Скелет: стена, клетка, редкие кости в стандартной атаке). Рисуется вертикально — код поворачивает.
+local function boneMask(m, x0, y0, y1, topKnob, bottomKnob)
+  for y = y0, y1 do for x = x0 - 1, x0 + 1 do L.set(m, x, y, "x") end end   -- стержень 3 px
+  if topKnob then disc(m, x0 - 0.9, y0 + 0.4, 1.6); disc(m, x0 + 1.9, y0 + 0.4, 1.6) end
+  if bottomKnob then disc(m, x0 - 0.9, y1 + 0.6, 1.6); disc(m, x0 + 1.9, y1 + 0.6, 1.6) end
+end
+local function boneWhite(r, f)
+  local m = grid()
+  boneMask(m, 8, 3, 13, true, true)
+  local out = body(m, r, nil, 1)
+  local g = ({ 5, 7, 9, 11 })[f + 1]                       -- блик бежит по стержню
+  paint(out, 7, g, r[5]); paint(out, 7, g + 1, r[5])
+  paint(out, 9, 6, r[2]); paint(out, 9, 10, r[2])          -- трещинки на кости
+  return finish(out, r)
+end
+-- обломок кости: шишка сверху, рваный край снизу
+local function boneHalfMask(m, x0, y0, y1)
+  boneMask(m, x0, y0, y1, true, false)
+  L.set(m, x0 - 1, y1, nil); L.set(m, x0 + 1, y1 - 1, nil) -- зубчатый излом
+end
+local function bonePurple(r, f)
+  local out = grid()
+  local gap = (f == 1 or f == 2) and 1 or 0
+  local top = grid(); boneHalfMask(top, 8, 2, 7 - gap)
+  body(top, r, out, 1)
+  local bottom = grid()
+  L.each((function() local g = grid(); boneHalfMask(g, 8, 2, 7); return g end)(), function(x, y)
+    L.set(bottom, 16 - x, 16 - y + gap, "x")              -- вторая половина — та же, перевёрнутая
+  end)
+  body(bottom, r, out, 1)
+  paint(out, 7, 4, r[5])
+  return finish(out, r)
+end
+local function boneHalf(r, f)
+  local m = grid()
+  boneHalfMask(m, 8, 4, 11)
+  local out = body(m, r, nil, 1)
+  paint(out, 7, ({ 6, 7, 8, 7 })[f + 1], r[5])
+  return finish(out, r)
+end
+
+-- Призрак-«простыня» (маятник Призрака): белый и синий — одно привидение, фиолетовый — пара
+local function spiritSingle(r, f)
+  local out = grid()
+  sheetGhost(out, r, 5, 3 + ((f == 1 or f == 2) and 1 or 0), f, false)
+  return finish(out, r)
+end
+
+local VARIANTS = {
+  { "Skull", "Bone", { White = boneWhite, Purple = bonePurple, PurpleHalf = boneHalf, Blue = boneWhite } },
+  { "Ghost", "Spirit", { White = spiritSingle, Purple = ghostPurple, PurpleHalf = ghostHalf, Blue = spiritSingle } },
+}
+
 -- ================= запасные (если у врага нет своих пуль) =================
 local function orbWhite(r, f)
   local out = body(discMask(8.5, 8.5, 6), r, nil, 1)
@@ -482,6 +536,7 @@ local ENEMIES = {
   { "Skull", { White = skullWhite, Purple = skullPurple, PurpleHalf = skullHalf, Blue = skullBlue } },
   { "Moonface", { White = moonWhite, Purple = moonPurple, PurpleHalf = moonHalf, Blue = moonBlue } },
 }
+for _, v in ipairs(VARIANTS) do ENEMIES[#ENEMIES + 1] = { v[1], v[3], v[2] } end
 local TYPES = { "White", "Purple", "PurpleHalf", "Blue" }
 local RAMP_OF = { White = RAMPS.White, Purple = RAMPS.Purple, PurpleHalf = RAMPS.Purple, Blue = RAMPS.Blue }
 
@@ -492,7 +547,7 @@ local sheet = Image((#TYPES * 4 * cell + (#TYPES - 1) * 6) * SC, #ENEMIES * (cel
 sheet:clear(app.pixelColor.rgba(6, 3, 8, 255))
 for row, e in ipairs(ENEMIES) do
   for ti, t in ipairs(TYPES) do
-    local frames = save("Projectiles/" .. e[1] .. "/Bullet" .. t, e[2][t], RAMP_OF[t])
+    local frames = save("Projectiles/" .. e[1] .. "/" .. (e[3] or "Bullet") .. t, e[2][t], RAMP_OF[t])
     for fi, g in ipairs(frames) do
       local img = L.toImage(g)
       for y = 0, N - 1 do for x = 0, N - 1 do

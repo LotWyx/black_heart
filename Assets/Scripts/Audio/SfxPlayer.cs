@@ -49,7 +49,7 @@ namespace BlackHeart
         {
             if (clip == null) return;
             source.pitch = pitch;
-            source.PlayOneShot(clip, volume);
+            source.PlayOneShot(clip, volume * GameSettings.SoundVolume);
         }
 
         void OnGameStarted() => Play(SfxSynth.Start);

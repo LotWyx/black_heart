@@ -24,7 +24,10 @@ namespace BlackHeart
         public EnemyDefinition Enemy;
 
         public float SpecialShare = 0.25f;     // доля особых пуль — строго от общего числа
-        public float MinReactionTime = 1.2f;   // минимум секунд от края рамки до сердца
+        public float MinReactionTime = 1.5f;   // минимум секунд от края рамки до сердца
+
+        // Скорость, с которой путь distance займёт не меньше MinReactionTime
+        public float CapSpeed(float speed, float distance) => Mathf.Min(speed, distance / MinReactionTime);
         public float MinBlueAngle = 50f;       // синие не летят рядом с остальными
 
         readonly Queue<ProjectileType> deck = new Queue<ProjectileType>();
@@ -62,6 +65,58 @@ namespace BlackHeart
         public bool RollBlueRing() => Random.value < SpecialShare * Enemy.BlueRatio;
 
         public Projectile Spawn(ProjectileType type, IProjectileMotion motion) => Projectiles.Spawn(type, motion);
+        // variant — особый вид пули (Bone — кость Скелета, Spirit — призрак маятника)
+        public Projectile Spawn(ProjectileType type, IProjectileMotion motion, string variant) =>
+            Projectiles.Spawn(type, motion, 0f, false, variant);
+
+        // ---------- для паттернов врагов ----------
+
+        public MonoBehaviour Host;             // на нём паттерн может запускать параллельные корутины
+
+        // Значение растёт от from (при сложности d0) до to (при d1) и дальше не меняется
+        public float Ramp(float from, float to, float d0 = 0f, float d1 = 1f) =>
+            Mathf.Lerp(from, to, Mathf.InverseLerp(d0, d1, Difficulty));
+        public int RampInt(float from, float to, float d0 = 0f, float d1 = 1f) => Mathf.RoundToInt(Ramp(from, to, d0, d1));
+
+        // Перемешанный набор типов: ровно blue синих, из остальных доля purpleShare — фиолетовые
+        public List<ProjectileType> Types(int count, int blue, float purpleShare)
+        {
+            var list = new List<ProjectileType>(count);
+            blue = Mathf.Clamp(blue, 0, count);
+            int purple = Mathf.RoundToInt((count - blue) * Mathf.Clamp01(purpleShare));
+            for (int i = 0; i < blue; i++) list.Add(ProjectileType.Blue);
+            for (int i = 0; i < purple; i++) list.Add(ProjectileType.Purple);
+            while (list.Count < count) list.Add(ProjectileType.White);
+            for (int i = list.Count - 1; i > 0; i--)
+            {
+                int j = Random.Range(0, i + 1);
+                (list[i], list[j]) = (list[j], list[i]);
+            }
+            return list;
+        }
+
+        // Особый тип по соотношению врага (фиолетовый/синий) с заданной долей особых
+        public ProjectileType RollType(float specialShare) =>
+            Random.value < specialShare ? Enemy.PickSpecialType() : ProjectileType.White;
+
+        public static int AliveCount(List<Projectile> list)
+        {
+            int n = 0;
+            foreach (var p in list) if (p != null && p.Alive) n++;
+            return n;
+        }
+
+        // Ждать, пока на поле останется не больше count пуль (или истечёт timeout)
+        public IEnumerator WaitFieldBelow(int count, float timeout)
+        {
+            while (Projectiles.Count > count && timeout > 0f)
+            {
+                timeout -= Time.deltaTime;
+                yield return null;
+            }
+        }
+
+        public Vector2 Dir(float angleRad) => new Vector2(Mathf.Cos(angleRad), Mathf.Sin(angleRad));
 
         // ---------- скорость и направление ----------
 

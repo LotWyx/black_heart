@@ -14,6 +14,9 @@ namespace BlackHeart
         // в стиле врага — Projectiles/<Враг>/Bullet<Тип>[_spin] (цвет тот же, меняется только форма)
         public static string BulletOf(ProjectileType type) => "Projectiles/Bullet" + type;
         public static string BulletOf(ProjectileType type, string theme) => "Projectiles/" + theme + "/Bullet" + type;
+        // Особый вид пули у паттерна (кости Скелета, призраки маятника): Projectiles/<Враг>/<Вид><Тип>[_spin]
+        public static string BulletOf(ProjectileType type, string theme, string variant) =>
+            "Projectiles/" + theme + "/" + (variant ?? "Bullet") + type;
 
         public const string BoomCircle = "FX/BoomCircle";
 

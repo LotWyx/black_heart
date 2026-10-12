@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace BlackHeart
 {
-    // Цикл боя: появление врага → (атака → защита) × N → победа → новый враг.
+    // Цикл боя: появление врага → (защита → атака) × N → победа → новый враг.
+    // В одной фазе защиты враг проводит несколько атак подряд из своего набора (паттерны общей библиотеки).
     public class BattleController : MonoBehaviour
     {
         public List<EnemyDefinition> enemies = EnemyRoster.CreateDefaults();
@@ -14,16 +15,22 @@ namespace BlackHeart
         public float defenseTimeout = 25f;       // страховка, если пуля где-то застряла
         public float topHudSpace = 0.4f;         // отступ сверху (надписи HUD в углах, враг по центру)
 
-        [Header("Сложность")]
-        public float difficultyPerTurn = 0.085f; // ~12 ходов до «середины»
-        public float maxDifficulty = 1.6f;
+        [Header("Сложность: общая по забегу + рост внутри боя")]
+        public float difficultyPerTurn = 0.05f;        // за каждую фазу защиты в забеге
+        public float difficultyPerFightTurn = 0.18f;   // за каждую фазу защиты против текущего врага
+        public float maxDifficulty = 2f;
+
+        [Header("Серия атак в фазе защиты")]
+        public int attacksEasy = 2;
+        public int attacksHard = 3;
+        public float pauseBetweenAttacks = 0.6f;
 
         [Header("Баланс пуль")]
         [Tooltip("Доля особых (фиолетовых и синих) пуль в атаке: в начале игры и к середине")]
         public float specialShareEasy = 0.2f;
         public float specialShareMid = 0.3f;
         [Tooltip("Минимум секунд от входа пули в рамку до сердца — быстрые пули летят только издалека")]
-        public float minReactionTime = 1.2f;
+        public float minReactionTime = 1.5f;
         [Tooltip("Минимальный угол между синими и остальными пулями")]
         public float minBlueAngle = 50f;
 
@@ -33,7 +40,8 @@ namespace BlackHeart
         public BattlePhase Phase { get; private set; }
         public Enemy CurrentEnemy { get; private set; }
         public int Turn { get; private set; }
-        public float Difficulty => Mathf.Min(maxDifficulty, Turn * difficultyPerTurn);
+        public int FightTurn { get; private set; }   // фаз защиты против текущего врага
+        public float Difficulty => Mathf.Min(maxDifficulty, Turn * difficultyPerTurn + FightTurn * difficultyPerFightTurn);
         public float AttackTimeLeft { get; private set; }
 
         bool enemyHitThisPhase;
@@ -113,6 +121,7 @@ namespace BlackHeart
             int index = Random.Range(0, enemies.Count);
             if (enemies.Count > 1 && index == lastEnemyIndex) index = (index + 1) % enemies.Count;
             lastEnemyIndex = index;
+            FightTurn = 0;
 
             CurrentEnemy = Enemy.Create(enemies[index], EnemyHome());
             GameEvents.RaiseEnemySpawned(CurrentEnemy);
@@ -138,9 +147,24 @@ namespace BlackHeart
                 Enemy = CurrentEnemy.Definition,
                 SpecialShare = Mathf.Lerp(specialShareEasy, specialShareMid, Mathf.Clamp01(Difficulty)),
                 MinReactionTime = minReactionTime,
-                MinBlueAngle = minBlueAngle
+                MinBlueAngle = minBlueAngle,
+                Host = this
             };
-            yield return PatternLibrary.Create(CurrentEnemy.Definition.PickPattern()).Run(ctx);
+            // Серия атак: следующая начинается, когда поле почти расчищено
+            int attacks = Difficulty < 0.4f ? attacksEasy : attacksHard;
+            string last = null;
+            for (int i = 0; i < attacks; i++)
+            {
+                string id = CurrentEnemy.Definition.PickPattern();
+                for (int tries = 0; tries < 4 && id == last; tries++) id = CurrentEnemy.Definition.PickPattern();
+                last = id;
+                yield return PatternLibrary.Create(id).Run(ctx);
+                if (i < attacks - 1)
+                {
+                    yield return ctx.WaitFieldBelow(2, 8f);
+                    yield return new WaitForSeconds(pauseBetweenAttacks);
+                }
+            }
 
             float timeout = defenseTimeout;
             while (gm.Projectiles.Count > 0 && timeout > 0)
@@ -150,6 +174,7 @@ namespace BlackHeart
             }
             gm.Projectiles.ClearAll();
             Turn++;
+            FightTurn++;
 
             SetPhase(BattlePhase.ToAttack);
             gm.Box.Shrink();

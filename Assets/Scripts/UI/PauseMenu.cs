@@ -40,13 +40,13 @@ namespace BlackHeart
             selected = 0;
             openedAt = Time.unscaledTime;
             inputFrom = Time.frameCount + 1;
-            sfx.PlayOneShot(SfxSynth.MenuSelect);
+            sfx.PlayOneShot(SfxSynth.MenuSelect, GameSettings.SoundVolume);
         }
 
         void Close()
         {
             gm.SetPaused(false);
-            sfx.PlayOneShot(SfxSynth.MenuSelect);
+            sfx.PlayOneShot(SfxSynth.MenuSelect, GameSettings.SoundVolume);
         }
 
         void Activate(int index)
@@ -54,7 +54,7 @@ namespace BlackHeart
             if (index == 0) Close();
             else
             {
-                sfx.PlayOneShot(SfxSynth.MenuSelect);
+                sfx.PlayOneShot(SfxSynth.MenuSelect, GameSettings.SoundVolume);
                 gm.QuitToMenu();
             }
         }
@@ -98,7 +98,7 @@ namespace BlackHeart
             for (int i = 0; i < rects.Count; i++)
             {
                 if (!rects[i].Contains(gui)) continue;
-                if ((moved || pressed) && selected != i) { selected = i; sfx.PlayOneShot(SfxSynth.MenuMove); }
+                if ((moved || pressed) && selected != i) { selected = i; sfx.PlayOneShot(SfxSynth.MenuMove, GameSettings.SoundVolume); }
                 if (pressed) { Activate(i); return; }
             }
         }
@@ -106,7 +106,7 @@ namespace BlackHeart
         void Move(int d)
         {
             selected = (selected + d + Items.Length) % Items.Length;
-            sfx.PlayOneShot(SfxSynth.MenuMove);
+            sfx.PlayOneShot(SfxSynth.MenuMove, GameSettings.SoundVolume);
         }
 
         // ---------- отрисовка ----------

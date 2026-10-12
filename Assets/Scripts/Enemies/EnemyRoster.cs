@@ -16,29 +16,35 @@ namespace BlackHeart
             laughText = "",   // вместо надписи — реплики в облачке
         };
 
+        // У каждого врага свой набор атак (паттерны из общей библиотеки); стандартная атака
+        // встречается чаще остальных — она указана дважды. 5 HP, бой ~2 минуты.
         public static List<EnemyDefinition> CreateDefaults() => new List<EnemyDefinition>
         {
             new EnemyDefinition
             {
                 displayName = "ПРИЗРАК",
                 spriteId = ArtIds.EnemyGhost,
-                patterns = new List<string> { StraightPattern.ID, ZigzagPattern.ID, DrunkPattern.ID },
-                purpleWeight = 0.7f, blueWeight = 0.3f,
+                minHp = 5, maxHp = 5,
+                patterns = new List<string> { GhostSpiralPattern.ID, GhostWavePattern.ID, PendulumPattern.ID,
+                                              GhostStandardPattern.ID, GhostStandardPattern.ID },
+                purpleWeight = 0.6f, blueWeight = 0.4f,
                 laughText = "ХЕ-ХЕ-ХЕ..."
             },
             new EnemyDefinition
             {
                 displayName = "ГЛАЗ",
                 spriteId = ArtIds.EnemyEye,
-                patterns = new List<string> { SpiralPattern.ID, BoomCirclePattern.ID, StraightPattern.ID },
-                purpleWeight = 0.35f, blueWeight = 0.65f,
+                minHp = 5, maxHp = 5,
+                patterns = new List<string> { EyeBoomPattern.ID, EyeRectPattern.ID, EyeStandardPattern.ID, EyeStandardPattern.ID },
+                purpleWeight = 0.4f, blueWeight = 0.6f,
                 laughText = "ХИ-ХИ-ХИ..."
             },
             new EnemyDefinition
             {
                 displayName = "ЧЕРЕП",
                 spriteId = ArtIds.EnemySkull,
-                patterns = new List<string> { ZigzagPattern.ID, SpiralPattern.ID, BoomCirclePattern.ID, DrunkPattern.ID },
+                minHp = 5, maxHp = 5,
+                patterns = new List<string> { BoneWallPattern.ID, BoneCagePattern.ID, SkullStandardPattern.ID, SkullStandardPattern.ID },
                 purpleWeight = 0.6f, blueWeight = 0.4f,
                 laughText = "ХА-ХА-ХА!"
             },

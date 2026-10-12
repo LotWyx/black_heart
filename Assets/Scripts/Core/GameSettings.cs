@@ -3,33 +3,33 @@ using UnityEngine;
 
 namespace BlackHeart
 {
-    // Настройки игрока (громкость), сохраняются в PlayerPrefs.
+    // Настройки игрока (громкость звуков и музыки — независимо), сохраняются в PlayerPrefs.
     public static class GameSettings
     {
-        const string MasterKey = "blackheart.volume.master";
+        const string SoundKey = "blackheart.volume.sound";
         const string MusicKey = "blackheart.volume.music";
 
         public static event Action OnChanged;
 
         static bool loaded;
-        static float master = 1f, music = 0.6f;
+        static float sound = 1f, music = 0.6f;
 
         static void Load()
         {
             if (loaded) return;
             loaded = true;
-            master = Step(PlayerPrefs.GetFloat(MasterKey, 1f));
+            sound = Step(PlayerPrefs.GetFloat(SoundKey, 1f));
             music = Step(PlayerPrefs.GetFloat(MusicKey, 0.6f));
         }
 
-        // Общая громкость (все звуки и музыка)
-        public static float MasterVolume
+        // Громкость звуков: удары, разрезы, интерфейс, голос (музыка — отдельно)
+        public static float SoundVolume
         {
-            get { Load(); return master; }
-            set { Load(); master = Step(value); Save(); }
+            get { Load(); return sound; }
+            set { Load(); sound = Step(value); Save(); }
         }
 
-        // Громкость музыки (поверх общей)
+        // Громкость музыки
         public static float MusicVolume
         {
             get { Load(); return music; }
@@ -41,14 +41,15 @@ namespace BlackHeart
 
         static void Save()
         {
-            PlayerPrefs.SetFloat(MasterKey, master);
+            PlayerPrefs.SetFloat(SoundKey, sound);
             PlayerPrefs.SetFloat(MusicKey, music);
             PlayerPrefs.Save();
             Apply();
             OnChanged?.Invoke();
         }
 
-        public static void Apply() => AudioListener.volume = MasterVolume;
+        // Общий уровень не трогаем: звуки и музыка регулируются каждый своей громкостью
+        public static void Apply() => AudioListener.volume = 1f;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()

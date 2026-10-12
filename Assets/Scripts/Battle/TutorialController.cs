@@ -304,7 +304,7 @@ namespace BlackHeart
             gm.Projectiles.Frozen = on;
             gm.Box.TimeStopped = on;
             voice.pitch = 1f;
-            voice.PlayOneShot(on ? SfxSynth.TimeStop : SfxSynth.TimeResume);
+            voice.PlayOneShot(on ? SfxSynth.TimeStop : SfxSynth.TimeResume, GameSettings.SoundVolume);
         }
 
         // Реплика: текст печатается с «голосом»; тап дописывает текст сразу, второй тап — дальше
@@ -325,7 +325,7 @@ namespace BlackHeart
                 {
                     if (text[i] == ' ' || i % 2 != 0) continue;
                     voice.pitch = UnityEngine.Random.Range(0.92f, 1.08f);
-                    voice.PlayOneShot(SfxSynth.Voice);
+                    voice.PlayOneShot(SfxSynth.Voice, GameSettings.SoundVolume);
                     break;
                 }
                 shown = visible;

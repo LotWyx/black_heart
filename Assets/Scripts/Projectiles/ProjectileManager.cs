@@ -17,9 +17,10 @@ namespace BlackHeart
         public int Count => active.Count;
         public IReadOnlyList<Projectile> Active => active;
 
-        public Projectile Spawn(ProjectileType type, IProjectileMotion motion, float startTime = 0f, bool fragment = false)
+        // variant — особый вид пули у паттерна (Bone, Spirit…); null — обычный вид врага
+        public Projectile Spawn(ProjectileType type, IProjectileMotion motion, float startTime = 0f, bool fragment = false, string variant = null)
         {
-            var p = Projectile.Create(type, motion, startTime, fragment);
+            var p = Projectile.Create(type, motion, startTime, fragment, variant);
             active.Add(p);
             return p;
         }

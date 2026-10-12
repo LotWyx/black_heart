@@ -14,6 +14,20 @@ namespace BlackHeart
             [SpiralPattern.ID] = () => new SpiralPattern(),
             [DrunkPattern.ID] = () => new DrunkPattern(),
             [BoomCirclePattern.ID] = () => new BoomCirclePattern(),
+            // Скелет
+            [BoneWallPattern.ID] = () => new BoneWallPattern(),
+            [BoneCagePattern.ID] = () => new BoneCagePattern(),
+            [SkullStandardPattern.ID] = () => new SkullStandardPattern(),
+            // Глаз
+            [EyeBoomPattern.ID] = () => new EyeBoomPattern(),
+            [EyeRectPattern.ID] = () => new EyeRectPattern(),
+            [EyeStandardPattern.ID] = () => new EyeStandardPattern(),
+            // Призрак
+            [GhostSpiralPattern.ID] = () => new GhostSpiralPattern(),
+            [GhostWavePattern.ID] = () => new GhostWavePattern(),
+            [PendulumPattern.ID] = () => new PendulumPattern(),
+            [FlyPattern.ID] = () => new FlyPattern(),
+            [GhostStandardPattern.ID] = () => new GhostStandardPattern(),
         };
 
         public static IEnumerable<string> AllIds => registry.Keys;

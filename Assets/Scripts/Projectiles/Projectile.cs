@@ -15,6 +15,7 @@ namespace BlackHeart
         float time;
         bool dead, reverseSpin, spinning;
         string theme;   // враг, выпустивший пулю (Ghost, Eye, ...) — от него зависит форма пули
+        string variant; // особый вид пули у паттерна (Bone, Spirit…), передаётся осколкам
         string halfId;  // осколок фиолетовой: спрайт половинки (одно привидение, один глаз, ...)
         bool flipHalf;  // второй осколок пары — зеркальная половинка
         static bool nextHalfFlipped;
@@ -27,7 +28,9 @@ namespace BlackHeart
         const float SpinFrameTime = 0.14f;   // кадры пули — действия (зрачок, челюсть, пламя), не вращение
         static readonly int[] ReverseSpin = { 0, 3, 2, 1 };
 
-        public static Projectile Create(ProjectileType type, IProjectileMotion motion, float startTime, bool fragment)
+        public bool Alive => !dead;
+
+        public static Projectile Create(ProjectileType type, IProjectileMotion motion, float startTime, bool fragment, string variant = null)
         {
             var go = new GameObject("Projectile_" + type);
             var p = go.AddComponent<Projectile>();
@@ -37,6 +40,7 @@ namespace BlackHeart
             p.IsFragment = fragment;
             p.sliceableAt = fragment ? Time.time + FragmentInvulnerability : 0f;
             p.reverseSpin = Random.value < 0.5f;
+            p.variant = variant;
             var enemy = GameManager.I.Battle.CurrentEnemy;
             if (enemy != null)
             {
@@ -55,7 +59,8 @@ namespace BlackHeart
             // Осколок фиолетовой распадается на половинки своего врага; если их нет — копия с трещиной
             if (fragment && type == ProjectileType.Purple)
             {
-                string half = (p.theme != null ? ArtIds.BulletOf(type, p.theme) : ArtIds.BulletOf(type)) + "Half";
+                string half = (p.theme != null ? ArtIds.BulletOf(type, p.theme, variant) : ArtIds.BulletOf(type)) + "Half";
+                if (!ArtLibrary.Has(half + "_spin") && p.theme != null) half = ArtIds.BulletOf(type, p.theme) + "Half";
                 if (!ArtLibrary.Has(half + "_spin")) half = ArtIds.BulletOf(type) + "Half";
                 if (ArtLibrary.Has(half + "_spin"))
                 {
@@ -74,6 +79,7 @@ namespace BlackHeart
             }
 
             go.transform.position = motion.Evaluate(startTime);
+            p.Orient();
             return p;
         }
 
@@ -81,18 +87,14 @@ namespace BlackHeart
         {
             var gm = GameManager.I;
             if (dead || !gm.IsPlaying) return;
-            bool frozen = gm.Projectiles.Frozen;
-            anim.enabled = !frozen;
-            if (frozen) return;
-
-            time += Time.deltaTime;
-            transform.position = motion.Evaluate(time);
-
+            // Свой спрайт пуля получает со второго кадра, даже если время остановлено (обучение):
+            // иначе осколки висели бы вспышкой появления — цветными квадратами
             if (!spinning && Time.frameCount > spawnFrame)
             {
                 spinning = true;
                 // Форма врага → цветная по типу → общая серая, перекрашенная в цвет типа
-                string id = halfId ?? (theme != null ? ArtIds.BulletOf(Type, theme) : null);
+                string id = halfId ?? (theme != null ? ArtIds.BulletOf(Type, theme, variant) : null);
+                if (id != null && halfId == null && variant != null && !ArtLibrary.Has(id + "_spin")) id = ArtIds.BulletOf(Type, theme);
                 if (id == null || !ArtLibrary.Has(id + "_spin")) id = ArtIds.BulletOf(Type);
                 sr.flipX = halfId != null && flipHalf;
                 bool typed = ArtLibrary.Has(id + "_spin");
@@ -101,11 +103,34 @@ namespace BlackHeart
                     SpinFrameTime, true, null, reverseSpin ? ReverseSpin : null);
             }
 
+            bool frozen = gm.Projectiles.Frozen;
+            anim.enabled = !frozen;
+            if (frozen) return;
+
+            time += Time.deltaTime;
+            transform.position = motion.Evaluate(time);
+            Orient();
+
             var heart = gm.Player;
             if (Vector2.Distance(Position, heart.Position) < heart.HitRadius + Radius * 0.6f)
                 HitPlayer();
-            else if (Position.sqrMagnitude > 900f)
+            else if (FarOffScreen(gm))
                 Kill();
+        }
+
+        // Кости и прочие вытянутые пули поворачиваются вслед за траекторией
+        void Orient()
+        {
+            if (motion is IOrientedMotion om) transform.rotation = Quaternion.Euler(0, 0, om.AngleAt(time));
+        }
+
+        // Улетела далеко за экран (прошла мимо сердца) — больше не нужна
+        bool FarOffScreen(GameManager gm)
+        {
+            Rect v = gm.Pixel.ViewRect;
+            const float margin = 4f;
+            Vector2 p = Position;
+            return p.x < v.xMin - margin || p.x > v.xMax + margin || p.y < v.yMin - margin || p.y > v.yMax + margin;
         }
 
         public bool CanBeSliced => !dead && Time.time >= sliceableAt;
@@ -146,8 +171,8 @@ namespace BlackHeart
             float shift = spriteLength / Mathf.Max(speed, 0.1f);
 
             var manager = GameManager.I.Projectiles;
-            manager.Spawn(ProjectileType.Purple, motion, time + shift, true);
-            manager.Spawn(ProjectileType.Purple, motion, time - shift, true);
+            manager.Spawn(ProjectileType.Purple, motion, time + shift, true, variant);
+            manager.Spawn(ProjectileType.Purple, motion, time - shift, true, variant);
 
             Debris.Burst(Position, Color, 6, 3f);
             GameEvents.RaiseProjectileSplit(this);

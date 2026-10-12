@@ -20,7 +20,7 @@ namespace BlackHeart
         static readonly Color Empty = Hex(0x2E2830);
 
         static readonly string[] MainItems = { "НАЧАТЬ ИГРУ", "РЕКОРД", "НАСТРОЙКИ", "ВЫХОД" };
-        static readonly string[] VolumeLabels = { "ОБЩАЯ ГРОМКОСТЬ", "МУЗЫКА" };
+        static readonly string[] VolumeLabels = { "ГРОМКОСТЬ ЗВУКА", "МУЗЫКА" };
         const float VolumeStep = 0.1f;
 
         public bool IsOpen { get; private set; }
@@ -167,11 +167,11 @@ namespace BlackHeart
             if (sound) Confirm();
         }
 
-        float Volume(int i) => i == 0 ? GameSettings.MasterVolume : GameSettings.MusicVolume;
+        float Volume(int i) => i == 0 ? GameSettings.SoundVolume : GameSettings.MusicVolume;
 
         void SetVolume(int i, float v)
         {
-            if (i == 0) GameSettings.MasterVolume = v;
+            if (i == 0) GameSettings.SoundVolume = v;
             else GameSettings.MusicVolume = v;
         }
 
@@ -181,8 +181,8 @@ namespace BlackHeart
             Blip();
         }
 
-        void Blip() => sfx.PlayOneShot(SfxSynth.MenuMove);
-        void Confirm() => sfx.PlayOneShot(SfxSynth.MenuSelect);
+        void Blip() => sfx.PlayOneShot(SfxSynth.MenuMove, GameSettings.SoundVolume);
+        void Confirm() => sfx.PlayOneShot(SfxSynth.MenuSelect, GameSettings.SoundVolume);
 
         static void Quit()
         {
