@@ -25,16 +25,20 @@ namespace BlackHeart
             bool holes = ctx.Difficulty < 0.6f;
             float special = Mathf.Min(0.5f, ctx.Ramp(0.15f, 0.5f, 0f, 1.5f));
             float a0 = Random.Range(0f, Mathf.PI * 2f);
+            // типы по рукаву заранее: соседи синих в рукаве пропускаются
+            var types = new List<ProjectileType>();
+            for (int i = 0; i < count; i++) types.Add(ctx.RollType(special));
+            var skip = AttackContext.BlueGaps(types, false);
 
             for (int i = 0; i < count; i++)
             {
-                if (!(holes && i % 4 == 3))   // дыра в рукаве
+                if (!(holes && i % 4 == 3) && !skip[i])   // дыра в рукаве
                 {
                     for (int arm = 0; arm < arms; arm++)
                     {
                         float a = a0 + i * step + arm * Mathf.PI;
                         float radius = ctx.Box.DistanceToEdge(ctx.Target, ctx.Dir(a)) + 0.6f;
-                        ctx.Spawn(ctx.RollType(special), new SpiralMotion(ctx.Target, radius, a, radius / duration, spin));
+                        ctx.Spawn(types[i], new SpiralMotion(ctx.Target, radius, a, radius / duration, spin));
                     }
                 }
                 yield return new WaitForSeconds(dt);
@@ -62,13 +66,16 @@ namespace BlackHeart
             float travel = r.width - 0.2f;               // голова доходит до противоположной стенки
             float headTime = travel / speed;
             int count = Mathf.Min(ctx.RampInt(10f, 16f, 0f, 1.5f), Mathf.FloorToInt(headTime / SpawnStep));
-            var types = ctx.Types(count, Random.Range(2, 4), ctx.Ramp(0f, 0.3f, 0.2f, 1.4f));
+            var types = ctx.Types(count, Random.Range(3, 6), ctx.Ramp(0f, 0.3f, 0.2f, 1.4f));
 
+            var skip = AttackContext.BlueGaps(types, false);   // в волне по бокам от синих — пусто
             for (int i = 0; i < count; i++)
             {
+                if (skip[i]) { yield return new WaitForSeconds(SpawnStep); continue; }
                 float spawnTime = i * SpawnStep;
                 float stopAt = headTime - spawnTime;                     // все замирают в один момент
-                float releaseAt = stopAt + Pause + i * 0.07f;            // и бросаются по очереди
+                float releaseAt = stopAt + Pause + i * 0.07f             // и бросаются по очереди,
+                                  + (types[i] == ProjectileType.Blue ? 0.5f : 0f); // синие — с задержкой
                 // бросок от точки остановки к сердцу — не быстрее времени реакции
                 Vector2 stopPoint = start + dir * speed * stopAt;
                 float dash = ctx.CapSpeed(DashSpeed, Vector2.Distance(stopPoint, ctx.Target));
@@ -95,8 +102,10 @@ namespace BlackHeart
             {
                 int count = ctx.Difficulty < 0.5f ? 1 : Random.Range(2, 2 + 1 + ctx.RampInt(0f, 2f, 0.5f, 1.5f));
                 var types = ctx.Types(count, count >= 2 ? 1 : 0, ctx.Ramp(0.1f, 0.35f));
+                types.Sort((a, b) => (a == ProjectileType.Blue).CompareTo(b == ProjectileType.Blue));   // синий — последним
                 for (int i = 0; i < count; i++)
                 {
+                    if (types[i] == ProjectileType.Blue && i > 0) yield return new WaitForSeconds(0.6f);
                     SpawnOne(ctx, types[i]);
                     yield return new WaitForSeconds(0.5f);
                 }
@@ -163,11 +172,12 @@ namespace BlackHeart
                     int n = ctx.RampInt(5f, 9f);
                     float a0 = Random.Range(0f, Mathf.PI * 2f), step = 0.45f * (Random.value < 0.5f ? 1 : -1);
                     float dur = ctx.Ramp(3.8f, 3f);
+                    var armType = ctx.RollType(special);   // рукав одного цвета: синие не вплотную к белым
                     for (int i = 0; i < n; i++)
                     {
                         float a = a0 + i * step;
                         float radius = ctx.Box.DistanceToEdge(ctx.Target, ctx.Dir(a)) + 0.6f;
-                        ctx.Spawn(ctx.RollType(special), new SpiralMotion(ctx.Target, radius, a, radius / dur, 0.5f * Mathf.Sign(step)));
+                        ctx.Spawn(armType, new SpiralMotion(ctx.Target, radius, a, radius / dur, 0.5f * Mathf.Sign(step)));
                         yield return new WaitForSeconds(0.12f);
                     }
                 }

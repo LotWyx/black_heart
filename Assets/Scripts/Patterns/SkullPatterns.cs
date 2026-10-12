@@ -27,24 +27,30 @@ namespace BlackHeart
                 float stagger = ctx.Ramp(0.24f, 0.12f, 0f, 1.6f);
 
                 int count = Mathf.Max(5, Mathf.FloorToInt((r.height - 0.6f) / 0.85f));
-                var types = ctx.Types(count, Random.Range(1, 3), ctx.Ramp(0f, 0.3f, 0.2f, 1.4f));
+                var types = ctx.Types(count, Random.Range(2, 3 + ctx.RampInt(0f, 1f, 0.5f, 1.2f)), ctx.Ramp(0f, 0.3f, 0.2f, 1.4f));
                 float x0 = fromLeft ? r.xMin - 0.5f : r.xMax + 0.5f;
                 Vector2 slideDir = fromLeft ? Vector2.right : Vector2.left;
                 float slideDistance = Mathf.Abs(ctx.Target.x - x0) * 0.5f;
                 float slideTime = slideDistance / wallSpeed;
 
-                // Порядок вылета: от краёв стены к середине, со случайной перестановкой соседей
-                var order = new List<int>();
-                for (int i = 0; i < count; i++) order.Add(i);
-                order.Sort((a, b) => Mathf.Abs(b - (count - 1) / 2f).CompareTo(Mathf.Abs(a - (count - 1) / 2f)));
-                for (int i = 0; i + 1 < count; i += 2) if (Random.value < 0.5f) (order[i], order[i + 1]) = (order[i + 1], order[i]);
+                var skip = AttackContext.BlueGaps(types, false);   // у синих костей в стене — просветы
 
-                for (int k = 0; k < count; k++)
+                // Порядок вылета: от краёв стены к середине, со случайной перестановкой соседей;
+                // синие кости — последними, после паузы, чтобы не лететь вплотную к белым
+                var order = new List<int>();
+                for (int i = 0; i < count; i++) if (!skip[i]) order.Add(i);
+                order.Sort((a, b) => Mathf.Abs(b - (count - 1) / 2f).CompareTo(Mathf.Abs(a - (count - 1) / 2f)));
+                for (int i = 0; i + 1 < order.Count; i += 2) if (Random.value < 0.5f) (order[i], order[i + 1]) = (order[i + 1], order[i]);
+                var blues = order.FindAll(i => types[i] == ProjectileType.Blue);
+                order.RemoveAll(i => types[i] == ProjectileType.Blue);
+                order.AddRange(blues);
+
+                for (int k = 0; k < order.Count; k++)
                 {
                     int i = order[k];
                     float y = Mathf.Lerp(r.yMin + 0.5f, r.yMax - 0.5f, count == 1 ? 0.5f : (float)i / (count - 1));
                     var start = new Vector2(x0, y);
-                    float launchAt = slideTime + 0.35f + k * stagger;
+                    float launchAt = slideTime + 0.35f + k * stagger + (types[i] == ProjectileType.Blue ? 0.7f : 0f);
                     // кость стоит в стене на виду, но бросок всё равно не быстрее времени реакции
                     float speed = ctx.CapSpeed(launchSpeed, Vector2.Distance(start + slideDir * slideDistance, ctx.Target));
                     ctx.Spawn(types[i], new BoneWallMotion(start, slideDir, slideDistance, wallSpeed, launchAt, ctx.Target, speed), Bone);
@@ -77,7 +83,9 @@ namespace BlackHeart
             float half = (PerSide - 1) * Spacing / 2f;
             int purpleLeft = purpleTotal;
             bones.AddRange(Cage(ctx, new Vector2(r.xMin - half - 1f, ctx.Target.y), speed, bluePerCage, ref purpleLeft, 2));
-            bones.AddRange(Cage(ctx, new Vector2(r.xMax + half + 1f, ctx.Target.y), speed, bluePerCage, ref purpleLeft, 1));
+            // вторая клетка отстаёт: клетки не сходятся у сердца одновременно и синие не тонут среди чужих костей
+            float lag = speed * 1.6f;
+            bones.AddRange(Cage(ctx, new Vector2(r.xMax + half + 1f + lag, ctx.Target.y), speed, bluePerCage, ref purpleLeft, 1));
 
             if (ctx.Difficulty >= 0.5f)
             {
@@ -86,7 +94,7 @@ namespace BlackHeart
                 while (AttackContext.AliveCount(bones) > spawned / 2 && timeout > 0f) { timeout -= Time.deltaTime; yield return null; }
                 int purpleMore = purpleTotal;
                 Cage(ctx, new Vector2(ctx.Target.x, r.yMax + half + 1f), speed, bluePerCage, ref purpleMore, 2);
-                Cage(ctx, new Vector2(ctx.Target.x, r.yMin - half - 1f), speed, bluePerCage, ref purpleMore, 1);
+                Cage(ctx, new Vector2(ctx.Target.x, r.yMin - half - 1f - lag), speed, bluePerCage, ref purpleMore, 1);
             }
             yield return null;
         }
@@ -102,6 +110,7 @@ namespace BlackHeart
             for (int i = 0; i < purple; i++) types.Add(ProjectileType.Purple);
             while (types.Count < perimeter) types.Add(ProjectileType.White);
             for (int i = types.Count - 1; i > 0; i--) { int j = Random.Range(0, i + 1); (types[i], types[j]) = (types[j], types[i]); }
+            var skip = AttackContext.BlueGaps(types, true);
 
             // Колесо катится: угловая скорость = скорость / радиус, направление — по ходу движения
             Vector2 dir = (ctx.Target - center).normalized;
@@ -120,8 +129,10 @@ namespace BlackHeart
                 for (int j = 0; j < PerSide - 1; j++)
                 {
                     Vector2 local = Vector2.Lerp(a, b, (float)j / (PerSide - 1));
+                    int idx = n++;
+                    if (skip[idx]) continue;   // просвет рядом с синей костью
                     var motion = new CageMotion(center, ctx.Target, speed, local, boneAngle, angle0, spin);
-                    list.Add(ctx.Spawn(types[n++], motion, Bone));
+                    list.Add(ctx.Spawn(types[idx], motion, Bone));
                 }
             }
             return list;
@@ -165,16 +176,26 @@ namespace BlackHeart
             yield return BoomCirclePattern.Burst(ctx, BoomCirclePattern.RandomCenter(ctx), types, 2f, 2.6f);
         }
 
-        // Кучка: 3–5 белых/фиолетовых и 1–2 синих с одного направления (±20°)
+        // Кучка: 3–5 белых/фиолетовых с одного направления (±20°), рядом 1–2 синих —
+        // сбоку от кучки (≈50° в сторону) и чуть позже, чтобы не лететь вплотную к белым
         static IEnumerator Cluster(AttackContext ctx, float purpleShare)
         {
             int n = ctx.RampInt(3, 5, 0f, 1.4f);
-            int blue = Random.value < 0.5f ? 1 : 2;
-            var types = ctx.Types(n + blue, blue, purpleShare);
+            int blue = Random.value < 0.3f ? 1 : 2 + (Random.value < ctx.Ramp(0f, 0.4f, 0.6f, 1.5f) ? 1 : 0);
+            var types = ctx.Types(n, 0, purpleShare);
+            for (int i = 0; i < blue; i++) types.Add(ProjectileType.Blue);
             float baseAngle = Random.Range(0f, Mathf.PI * 2f);
+            int blueIndex = 0;
             foreach (var type in types)
             {
-                Vector2 dir = ctx.Dir(baseAngle + Random.Range(-0.35f, 0.35f));
+                float angle = baseAngle + Random.Range(-0.35f, 0.35f);
+                if (type == ProjectileType.Blue)
+                {
+                    float side = (blueIndex++ % 2 == 0) ? 1f : -1f;
+                    angle = baseAngle + side * Random.Range(0.85f, 1.05f);
+                    if (blueIndex == 1) yield return new WaitForSeconds(0.3f);
+                }
+                Vector2 dir = ctx.Dir(angle);
                 Vector2 start = ctx.PointOutsideBox(dir);
                 float distance = ctx.Box.DistanceToEdge(ctx.Target, dir);
                 bool drunk = Random.value < 0.5f;

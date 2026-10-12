@@ -33,7 +33,9 @@ namespace BlackHeart
             foreach (var p in active.ToArray())
             {
                 if (p == null || !p.CanBeSliced) continue;
-                if (Geometry.DistancePointSegment(p.Position, a, b) <= p.Radius + sliceTolerance)
+                // синюю задевает только сам разрез (без запаса) — чтобы не зацепить её случайно у соседней пули
+                float reach = p.Type == ProjectileType.Blue ? p.Radius * 0.8f : p.Radius + sliceTolerance;
+                if (Geometry.DistancePointSegment(p.Position, a, b) <= reach)
                     p.Slice(dir);
             }
         }

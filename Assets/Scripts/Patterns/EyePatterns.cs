@@ -46,7 +46,7 @@ namespace BlackHeart
             for (int i = 0; i < 4; i++)
             {
                 var type = Random.value < purpleShare ? ProjectileType.Purple : ProjectileType.White;
-                ctx.Spawn(type, new OrbitMotion(center, ctx.Target, 1.05f, a0 + i * Mathf.PI / 2f, spin));
+                ctx.Spawn(type, new OrbitMotion(center, ctx.Target, 1.3f, a0 + i * Mathf.PI / 2f, spin));
             }
         }
     }
@@ -75,9 +75,11 @@ namespace BlackHeart
                 int steps = Mathf.Max(1, Mathf.RoundToInt(Vector2.Distance(a, b) / Spacing));
                 for (int j = 0; j < steps; j++) points.Add(Vector2.Lerp(a, b, (float)j / steps));
             }
-            var types = ctx.Types(points.Count, Random.Range(1, 3), 0f);
+            var types = ctx.Types(points.Count, Random.Range(2, 3 + ctx.RampInt(0f, 1f, 0.5f, 1.2f)), 0f);
+            var skip = AttackContext.BlueGaps(types, true);   // по бокам от синих в контуре — просветы
             for (int i = 0; i < points.Count; i++)
-                ctx.Spawn(types[i], new RectRingMotion(ctx.Target, points[i], 0f, spin, shrinkTime));
+                if (!skip[i]) ctx.Spawn(types[i], new RectRingMotion(ctx.Target, points[i], 0f, spin,
+                    types[i] == ProjectileType.Blue ? shrinkTime * 1.35f : shrinkTime));   // синие отстают от сжатия
             yield return new WaitForSeconds(shrinkTime * 0.8f);
         }
     }
@@ -94,7 +96,7 @@ namespace BlackHeart
             float duration = ctx.Ramp(8f, 12f, 0f, 1.5f);
             float interval = ctx.Ramp(1.3f, 0.7f, 0f, 1.5f);
             float fiveChance = ctx.Ramp(0.25f, 0.55f, 0f, 1.5f);
-            float special = ctx.Ramp(0.2f, 0.35f);
+            float special = ctx.Ramp(0.3f, 0.45f);
             float lastFive = -10f;
 
             for (float t = 0f; t < duration; t += interval)
@@ -109,6 +111,7 @@ namespace BlackHeart
                 {
                     // 1–3 глаза по спирали с соседних углов
                     int n = Random.Range(1, 4);
+                    var groupType = ctx.RollType(special);   // группа одного цвета: синие не летят вплотную к белым
                     float a0 = Random.Range(0f, Mathf.PI * 2f);
                     float spin = ctx.Ramp(0.9f, 1.5f) * (Random.value < 0.5f ? 1 : -1);
                     float dur = ctx.Ramp(4.5f, 3.4f, 0f, 1.5f);
@@ -116,7 +119,7 @@ namespace BlackHeart
                     {
                         float a = a0 + i * 0.45f;
                         float radius = ctx.Box.DistanceToEdge(ctx.Target, ctx.Dir(a)) + 0.6f;
-                        ctx.Spawn(ctx.RollType(special), new SpiralMotion(ctx.Target, radius, a, radius / dur, spin));
+                        ctx.Spawn(groupType, new SpiralMotion(ctx.Target, radius, a, radius / dur, spin));
                     }
                 }
                 else

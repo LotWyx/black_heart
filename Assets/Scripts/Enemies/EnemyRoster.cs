@@ -27,7 +27,7 @@ namespace BlackHeart
                 minHp = 5, maxHp = 5,
                 patterns = new List<string> { GhostSpiralPattern.ID, GhostWavePattern.ID, PendulumPattern.ID,
                                               GhostStandardPattern.ID, GhostStandardPattern.ID },
-                purpleWeight = 0.6f, blueWeight = 0.4f,
+                purpleWeight = 0.5f, blueWeight = 0.5f,
                 laughText = "ХЕ-ХЕ-ХЕ..."
             },
             new EnemyDefinition
@@ -45,7 +45,7 @@ namespace BlackHeart
                 spriteId = ArtIds.EnemySkull,
                 minHp = 5, maxHp = 5,
                 patterns = new List<string> { BoneWallPattern.ID, BoneCagePattern.ID, SkullStandardPattern.ID, SkullStandardPattern.ID },
-                purpleWeight = 0.6f, blueWeight = 0.4f,
+                purpleWeight = 0.5f, blueWeight = 0.5f,
                 laughText = "ХА-ХА-ХА!"
             },
         };

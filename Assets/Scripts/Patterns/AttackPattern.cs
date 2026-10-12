@@ -95,6 +95,25 @@ namespace BlackHeart
             return list;
         }
 
+        // В строю (кольцо или линия, по порядку) рядом с синей не ставим других пуль: соседи синих пропускаются.
+        // Иначе синюю невозможно не задеть, разрезая соседнюю.
+        public static bool[] BlueGaps(IList<ProjectileType> types, bool cyclic)
+        {
+            int n = types.Count;
+            var skip = new bool[n];
+            for (int i = 0; i < n; i++)
+            {
+                if (types[i] != ProjectileType.Blue) continue;
+                foreach (int d in new[] { -1, 1 })
+                {
+                    int j = i + d;
+                    if (cyclic) j = (j + n) % n;
+                    if (j >= 0 && j < n && types[j] != ProjectileType.Blue) skip[j] = true;
+                }
+            }
+            return skip;
+        }
+
         // Особый тип по соотношению врага (фиолетовый/синий) с заданной долей особых
         public ProjectileType RollType(float specialShare) =>
             Random.value < specialShare ? Enemy.PickSpecialType() : ProjectileType.White;

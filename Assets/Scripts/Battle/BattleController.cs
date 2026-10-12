@@ -8,34 +8,28 @@ namespace BlackHeart
     // В одной фазе защиты враг проводит несколько атак подряд из своего набора (паттерны общей библиотеки).
     public class BattleController : MonoBehaviour
     {
-        public List<EnemyDefinition> enemies = EnemyRoster.CreateDefaults();
+        // Настройки боя задаются только кодом: [NonSerialized], чтобы устаревшие значения,
+        // сохранённые в сцене (старые враги с 2–3 HP и старыми атаками), их не перекрывали.
+        [System.NonSerialized] public List<EnemyDefinition> enemies = EnemyRoster.CreateDefaults();
 
-        [Header("Фазы")]
-        public float attackWindow = 3f;          // сколько секунд даётся на удар по врагу
-        public float defenseTimeout = 25f;       // страховка, если пуля где-то застряла
-        public float topHudSpace = 0.4f;         // отступ сверху (надписи HUD в углах, враг по центру)
+        [System.NonSerialized] public float attackWindow = 3f;          // сколько секунд даётся на удар по врагу
+        [System.NonSerialized] public float defenseTimeout = 25f;       // страховка, если пуля где-то застряла
+        [System.NonSerialized] public float topHudSpace = 0.4f;         // отступ сверху (надписи HUD в углах, враг по центру)
 
-        [Header("Сложность: общая по забегу + рост внутри боя")]
-        public float difficultyPerTurn = 0.05f;        // за каждую фазу защиты в забеге
-        public float difficultyPerFightTurn = 0.18f;   // за каждую фазу защиты против текущего врага
-        public float maxDifficulty = 2f;
+        [System.NonSerialized] public float difficultyPerTurn = 0.05f;        // за каждую фазу защиты в забеге
+        [System.NonSerialized] public float difficultyPerFightTurn = 0.18f;   // за каждую фазу защиты против текущего врага
+        [System.NonSerialized] public float maxDifficulty = 2f;
 
-        [Header("Серия атак в фазе защиты")]
-        public int attacksEasy = 2;
-        public int attacksHard = 3;
-        public float pauseBetweenAttacks = 0.6f;
+        [System.NonSerialized] public int attacksEasy = 2;
+        [System.NonSerialized] public int attacksHard = 3;
+        [System.NonSerialized] public float pauseBetweenAttacks = 0.6f;
 
-        [Header("Баланс пуль")]
-        [Tooltip("Доля особых (фиолетовых и синих) пуль в атаке: в начале игры и к середине")]
-        public float specialShareEasy = 0.2f;
-        public float specialShareMid = 0.3f;
-        [Tooltip("Минимум секунд от входа пули в рамку до сердца — быстрые пули летят только издалека")]
-        public float minReactionTime = 1.5f;
-        [Tooltip("Минимальный угол между синими и остальными пулями")]
-        public float minBlueAngle = 50f;
+        [System.NonSerialized] public float specialShareEasy = 0.2f;
+        [System.NonSerialized] public float specialShareMid = 0.3f;
+        [System.NonSerialized] public float minReactionTime = 1.5f;
+        [System.NonSerialized] public float minBlueAngle = 50f;
 
-        [Header("Победа")]
-        public int healOnVictory = 2;
+        [System.NonSerialized] public int healOnVictory = 2;
 
         public BattlePhase Phase { get; private set; }
         public Enemy CurrentEnemy { get; private set; }

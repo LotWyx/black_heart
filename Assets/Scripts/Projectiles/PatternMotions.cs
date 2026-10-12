@@ -107,7 +107,8 @@ namespace BlackHeart
         public Vector2 Evaluate(float t)
         {
             Vector2 c = parent.Evaluate(t);
-            float r = radius * Mathf.Clamp01(Vector2.Distance(c, target) / 2.5f);
+            // спутники держатся на расстоянии от центра и смыкаются только у самой цели
+            float r = radius * Mathf.Clamp01(Vector2.Distance(c, target) / 0.6f);
             float a = angle0 + angularSpeed * t;
             return c + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * r;
         }

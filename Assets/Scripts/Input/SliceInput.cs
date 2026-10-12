@@ -9,10 +9,10 @@ namespace BlackHeart
     // Каждое новое нажатие — новый «штрих» (StrokeId).
     public class SliceInput : MonoBehaviour
     {
-        public float minSwipeSpeed = 6f;     // юнитов в секунду
-        public float trailLifetime = 0.12f;
-        public float trailWidthPx = 3f;
-        public float glowWidthPx = 8f;
+        [System.NonSerialized] public float minSwipeSpeed = 6f;     // юнитов в секунду
+        [System.NonSerialized] public float trailLifetime = 0.12f;
+        [System.NonSerialized] public float trailWidthPx = 3f;
+        [System.NonSerialized] public float glowWidthPx = 8f;
 
         static readonly Color Glow = new Color(0.91f, 0.14f, 0.14f);   // красный акцент, как у рамки боя
 

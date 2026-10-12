@@ -14,7 +14,7 @@ namespace BlackHeart
         public override string Id => ID;
 
         public const float HoldTime = 1f, ShrinkTime = 0.25f, MaxStraightTime = 2f;
-        public const float CircleDiameter = 4f, MinDistanceToHeart = 4.5f;
+        public const float CircleDiameter = 4f, MinDistanceToHeart = 4.5f, StartRadius = 0.7f;
         const float Speed = 2.2f, HomingSpeed = 2.8f;
 
         public override IEnumerator Run(AttackContext ctx)
@@ -52,12 +52,17 @@ namespace BlackHeart
 
             int count = types.Count;
             float offset = Random.Range(0f, Mathf.PI * 2f);
+            var skip = AttackContext.BlueGaps(types, true);   // по бокам от синей в кольце — пусто
             for (int i = 0; i < count; i++)
             {
+                if (skip[i]) continue;
                 float a = offset + Mathf.PI * 2f * i / count;
                 Vector2 dir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
-                float turn = Mathf.Min(MaxStraightTime, ctx.Box.TimeToExit(center, dir * speed));
-                ctx.Spawn(types[i], new BoomMotion(center, dir, speed, turn, ctx.Target, homingSpeed), variant);
+                Vector2 from = center + dir * StartRadius;   // кольцо рождается уже раскрытым, а не кучей в одной точке
+                float turn = Mathf.Min(MaxStraightTime, ctx.Box.TimeToExit(from, dir * speed));
+                // синяя сворачивает к сердцу медленнее — приходит позже белых, а не в одной куче с ними
+                float homing = types[i] == ProjectileType.Blue ? homingSpeed * 0.7f : homingSpeed;
+                ctx.Spawn(types[i], new BoomMotion(from, dir, speed, turn, ctx.Target, homing), variant);
             }
         }
     }
