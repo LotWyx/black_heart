@@ -30,7 +30,8 @@ namespace BlackHeart
         SpriteRenderer sr;
 
         const float FragmentInvulnerability = 0.08f;
-        const float MinFragmentGap = 0.5f;   // осколки появляются не ближе этой доли длины спрайта друг к другу
+        const float FragmentGap = 0.6f;      // на какую долю длины спрайта осколки расходятся в стороны
+        static readonly float[] DirectionProbes = { 0.05f, 0.25f, 0.6f, 1.2f, 2.5f };
         const float RushSpeed = 30f;         // рывок синей пули в сердце, юнитов в секунду
         const float SpinFrameTime = 0.14f;   // кадры пули — действия (зрачок, челюсть, пламя), не вращение
         static readonly int[] ReverseSpin = { 0, 3, 2, 1 };
@@ -239,44 +240,36 @@ namespace BlackHeart
             Kill();
         }
 
-        // Две новые пули продолжают траекторию: одна на спрайт впереди, другая на спрайт позади.
-        // Пару кадров они неуязвимы, чтобы не разрубились тем же движением мгновенно.
-        // Сдвиг по времени ограничен расстоянием: у замершей или медленной пули (кость в стене, волна перед
-        // броском) он иначе уносил осколок на секунды вперёд и назад по траектории — вплоть до точки за экраном.
+        // Фиолетовая распадается поперёк траектории: два осколка расходятся в стороны и летят бок о бок
+        // тем же путём и в тот же момент времени, что и целая пуля. У сердца сдвиг сходит на нет (Displaced).
+        // Пару кадров осколки неуязвимы, чтобы не разрубились тем же движением мгновенно.
         void Split()
         {
-            const float probe = 0.05f;
-            float speed = Vector2.Distance(motion.Evaluate(time + probe), motion.Evaluate(time)) / probe;
             float spriteLength = sr.sprite.bounds.size.x;
-            float shift = spriteLength / Mathf.Max(speed, 0.1f);
-            float ahead = SplitTime(shift, spriteLength), behind = SplitTime(-shift, spriteLength);
-
-            // Если по времени развести не вышло, осколки расходятся в стороны: кость — вдоль своей длины
-            Vector2 a = motion.Evaluate(ahead), b = motion.Evaluate(behind);
-            Vector2 axis = motion is IOrientedMotion ? (Vector2)transform.up
-                         : (a - b).sqrMagnitude > 1e-4f ? (a - b).normalized : Vector2.right;
-            float gap = Mathf.Max(0f, spriteLength * MinFragmentGap - Vector2.Dot(a - b, axis)) / 2f;
+            Vector2 dir = TravelDirection();
+            Vector2 side = new Vector2(-dir.y, dir.x) * (spriteLength * FragmentGap / 2f);
 
             var manager = GameManager.I.Projectiles;
-            manager.Spawn(ProjectileType.Purple, motion, ahead, true, variant, Formation).Shift(offset + axis * gap);
-            manager.Spawn(ProjectileType.Purple, motion, behind, true, variant, Formation).Shift(offset - axis * gap);
+            manager.Spawn(ProjectileType.Purple, motion, time, true, variant, Formation).Shift(offset + side);
+            manager.Spawn(ProjectileType.Purple, motion, time, true, variant, Formation).Shift(offset - side);
 
             Debris.Burst(Position, Color, 6, 3f);
             GameEvents.RaiseProjectileSplit(this);
             Kill();
         }
 
-        // Момент на траектории, сдвинутый на shift, но не дальше maxDistance от текущего места пули
-        float SplitTime(float shift, float maxDistance)
+        // Куда пуля летит. Если она сейчас стоит или дрожит на месте (кость в стене, волна перед броском) —
+        // куда двинется дальше; если и это неизвестно — к сердцу.
+        Vector2 TravelDirection()
         {
             Vector2 here = motion.Evaluate(time);
-            for (int i = 0; i < 8; i++)
+            foreach (float dt in DirectionProbes)
             {
-                float t = Mathf.Max(0f, time + shift);
-                if (Vector2.Distance(motion.Evaluate(t), here) <= maxDistance * 1.05f) return t;
-                shift *= 0.5f;
+                Vector2 v = motion.Evaluate(time + dt) - here;
+                if (v.magnitude > 0.2f) return v.normalized;
             }
-            return time;
+            Vector2 toHeart = GameManager.I.Player.Position - here;
+            return toHeart.sqrMagnitude > 1e-4f ? toHeart.normalized : Vector2.up;
         }
 
         void Shift(Vector2 by)

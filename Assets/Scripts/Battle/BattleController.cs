@@ -39,12 +39,15 @@ namespace BlackHeart
 
         bool enemyHitThisPhase;
         int lastEnemyIndex = -1;
+        readonly List<int> opening = new List<int>();   // первые бои забега: каждый враг по разу, в случайном порядке
         GameManager gm => GameManager.I;
 
         public void Begin()
         {
             Stop();
             Turn = 0;
+            opening.Clear();
+            for (int i = 0; i < enemies.Count; i++) opening.Insert(Random.Range(0, opening.Count + 1), i);
             StartCoroutine(BattleLoop());
         }
 
@@ -112,8 +115,18 @@ namespace BlackHeart
         IEnumerator SpawnEnemy()
         {
             DespawnEnemy();
-            int index = Random.Range(0, enemies.Count);
-            if (enemies.Count > 1 && index == lastEnemyIndex) index = (index + 1) % enemies.Count;
+            // Сначала игроку показывают всех врагов по одному разу, дальше — случайный, но не тот же, что только что
+            int index;
+            if (opening.Count > 0)
+            {
+                index = opening[0];
+                opening.RemoveAt(0);
+            }
+            else
+            {
+                index = Random.Range(0, enemies.Count);
+                if (enemies.Count > 1 && index == lastEnemyIndex) index = (index + 1) % enemies.Count;
+            }
             lastEnemyIndex = index;
             FightTurn = 0;
 
