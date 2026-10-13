@@ -43,8 +43,9 @@ sysinfo.txt
 crashlytics-build.properties
 *.tmp
 
-# Скриншоты инструментов и локальные резервные копии
+# Скриншоты инструментов, локальные превью графики и резервные копии
 /Captures/
+/Art/Preview/
 /_OldPrototype_backup/
 /_ArtBackup_before_aseprite/
 

@@ -1,0 +1,26 @@
+name: Баг
+description: Что-то работает не так
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: Что произошло
+      description: Что вы видели и что ожидали увидеть
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Как повторить
+      placeholder: |
+        1. Начать игру
+        2. Дойти до врага …
+        3. …
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Версия / коммит
+      placeholder: v0.1.0 или хэш коммита
+  - type: textarea
+    attributes:
+      label: Скриншоты, лог консоли
