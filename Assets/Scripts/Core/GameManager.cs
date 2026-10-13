@@ -64,6 +64,7 @@ namespace BlackHeart
             Ensure<PauseMenu>();
             Intro = Ensure<IntroController>();
             Fader = Ensure<ScreenFader>();
+            Ensure<GameCursor>();
 
             Slicer.OnSlice += HandleSlice;
             GameEvents.OnPlayerDied += HandlePlayerDied;
