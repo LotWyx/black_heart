@@ -16,12 +16,12 @@ MonoBehaviour:
   spriteId: Enemies/Ghost
   minHp: 5
   maxHp: 5
-  attacks:
-  - {fileID: 7245349175438662841, guid: f16a8a4fee7ee31439fe54c0865a7785, type: 3}
-  - {fileID: 2387889022484565949, guid: b80ff45fb73407e48ac72b23b29a1100, type: 3}
-  - {fileID: 7771570387504148202, guid: f7752903bc57aad4aabf5e20b47c8416, type: 3}
-  - {fileID: 7915871262956709214, guid: c69a35b7265dc4a4fa32652770bdbef9, type: 3}
-  - {fileID: 7915871262956709214, guid: c69a35b7265dc4a4fa32652770bdbef9, type: 3}
+  patterns:
+  - ghost_spiral
+  - ghost_wave
+  - pendulum
+  - ghost_std
+  - ghost_std
   purpleWeight: 0.5
   blueWeight: 0.5
   laughText: "\u0425\u0415-\u0425\u0415-\u0425\u0415..."

@@ -6,8 +6,7 @@ namespace BlackHeart
     // (Intro_, один раз), в главном меню — «Music Box of Souls» (Menu_), в бою — «Cathedral of Blades» (Battle_),
     // при смерти и на экране проигрыша — «Hold On To Your Heart» (GameOver_). Треки выровнены по громкости
     // (−16 LUFS, бой −15), петли бесшовные: конец трека перетекает в начало.
-    // Треки не обрываются: старый затихает, новый набирает громкость (времена — GameBalance, раздел «Музыка»).
-    // Если смена экрана идёт через затемнение (ScreenFader), музыка затихает вместе с картинкой.
+    // В бой — плавным перекрёстным затуханием; во всё остальное — мгновенно.
     // Другие треки — назначьте AudioClip в полях. Если боевого файла нет — синтезированная чиптюн-петля.
     public class MusicPlayer : MonoBehaviour
     {
@@ -16,20 +15,25 @@ namespace BlackHeart
         const string MenuPath = "Audio/Music/Menu_MusicBoxOfSouls";
         const string IntroPath = "Audio/Music/Intro_Prologue";
         const string GameOverPath = "Audio/Music/GameOver_HoldOnToYourHeart";
+        const float FadeTime = 1.2f;   // секунды; в реальном времени, чтобы работало и на паузе
 
-        AudioSource source;
-        float level;                   // громкость текущего трека 0..1 (общую громкость музыки задаёт микшер)
+        readonly AudioSource[] sources = new AudioSource[2];
+        int active;                    // источник, который сейчас звучит или нарастает
+        float fade = 1f;               // прогресс перехода 0..1
         static AudioClip generated;
-
-        // Для проверки: что играет и на какой громкости
-        public AudioClip CurrentClip => source != null ? source.clip : null;
-        public float Level => level;
 
         void Awake()
         {
-            source = GameAudio.AddSource(gameObject, true);
-            source.volume = 0f;
+            for (int i = 0; i < 2; i++)
+            {
+                sources[i] = GameAudio.AddSource(gameObject, true);
+                sources[i].loop = true;
+                sources[i].playOnAwake = false;
+            }
         }
+
+        void OnEnable() => GameSettings.OnChanged += ApplyVolume;
+        void OnDisable() => GameSettings.OnChanged -= ApplyVolume;
 
         void Start()
         {
@@ -55,31 +59,32 @@ namespace BlackHeart
                            : state == GameManager.State.Playing ? battleTrack
                            : state == GameManager.State.Dying || state == GameManager.State.GameOver ? gameOverTrack
                            : menuTrack;
-
-            var balance = GameBalance.Current;
-            // в реальном времени, чтобы работало и на паузе; подвисание не должно проглатывать затухание
-            float dt = Mathf.Min(Time.unscaledDeltaTime, 0.1f);
-            bool darkening = gm.Fader != null && gm.Fader.Darkening;
-            if (darkening || (want != null && source.clip != want))
-            {
-                // экран гаснет — музыка должна успеть затихнуть к полной темноте
-                float fadeOut = darkening ? Mathf.Min(balance.musicFadeOut, ScreenFader.FadeTime) : balance.musicFadeOut;
-                level = fadeOut > 0f ? Mathf.Max(0f, level - dt / fadeOut) : 0f;
-                if (level <= 0f && want != null && source.clip != want) Play(want);
-            }
-            else
-            {
-                level = balance.musicFadeIn > 0f ? Mathf.Min(1f, level + dt / balance.musicFadeIn) : 1f;
-            }
-            source.volume = level * level;   // квадрат: на слух громкость меняется ровнее
+            // плавно — только в бой; меню, вступление и проигрыш начинаются сразу
+            // (иначе при быстром выходе в меню боевой трек ещё доигрывает)
+            bool instant = want != battleTrack;
+            if (want != null && sources[active].clip != want) SwitchTo(want, instant);
+            if (fade < 1f) fade = Mathf.Min(1f, fade + Time.unscaledDeltaTime / FadeTime);
+            ApplyVolume();
         }
 
-        void Play(AudioClip clip)
+        void SwitchTo(AudioClip clip, bool instant)
         {
-            source.Stop();
-            source.clip = clip;
-            source.loop = clip != introTrack;   // вступление звучит один раз
-            source.Play();
+            bool silent = sources[active].clip == null;
+            active = 1 - active;
+            sources[active].clip = clip;
+            sources[active].loop = clip != introTrack;   // вступление звучит один раз
+            sources[active].Play();
+            fade = silent || instant ? 1f : 0f;   // самый первый трек и трек меню/проигрыша — сразу, без затухания
+        }
+
+        void ApplyVolume()
+        {
+            const float v = 1f;   // громкость из настроек задаёт группа Music в микшере
+            var current = sources[active];
+            var previous = sources[1 - active];
+            current.volume = v * fade;
+            previous.volume = v * (1f - fade);
+            if (fade >= 1f && previous.isPlaying) previous.Stop();
         }
     }
 

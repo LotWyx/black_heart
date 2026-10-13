@@ -16,11 +16,11 @@ MonoBehaviour:
   spriteId: Enemies/Skull
   minHp: 5
   maxHp: 5
-  attacks:
-  - {fileID: 3322789302657501601, guid: 92652f57e402f044485896436b6301d7, type: 3}
-  - {fileID: 6434247022521313314, guid: 5e504a88e5dd30c44a3e2f409d1eeaad, type: 3}
-  - {fileID: 2060235135204731577, guid: 166da113283123d489b65f06ba337793, type: 3}
-  - {fileID: 2060235135204731577, guid: 166da113283123d489b65f06ba337793, type: 3}
+  patterns:
+  - bonewall
+  - bonecage
+  - skull_std
+  - skull_std
   purpleWeight: 0.5
   blueWeight: 0.5
   laughText: "\u0425\u0410-\u0425\u0410-\u0425\u0410!"

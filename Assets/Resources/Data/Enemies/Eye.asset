@@ -16,11 +16,11 @@ MonoBehaviour:
   spriteId: Enemies/Eye
   minHp: 5
   maxHp: 5
-  attacks:
-  - {fileID: 7589963010867700309, guid: c4b3af8cd6546b64dbbcc2546b5e1c3f, type: 3}
-  - {fileID: 5725171424277857466, guid: d32848b181db7af4989b10019415f5ec, type: 3}
-  - {fileID: 3270649008095325600, guid: fa4c2cdd1a021b14c9021c9ba25af7b5, type: 3}
-  - {fileID: 3270649008095325600, guid: fa4c2cdd1a021b14c9021c9ba25af7b5, type: 3}
+  patterns:
+  - eye_boom
+  - eye_rect
+  - eye_std
+  - eye_std
   purpleWeight: 0.4
   blueWeight: 0.6
   laughText: "\u0425\u0418-\u0425\u0418-\u0425\u0418..."

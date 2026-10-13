@@ -5,7 +5,7 @@ using UnityEngine;
 namespace BlackHeart
 {
     // Цикл боя: появление врага → (защита → атака) × N → победа → новый враг.
-    // В одной фазе защиты враг проводит несколько атак подряд из своего набора (префабы атак в EnemyDefinition.attacks).
+    // В одной фазе защиты враг проводит несколько атак подряд из своего набора (паттерны общей библиотеки).
     public class BattleController : MonoBehaviour
     {
         // Все настройки боя лежат в ассете GameBalance (Resources/Data), здесь — только доступ к ним
@@ -30,8 +30,7 @@ namespace BlackHeart
         public Enemy CurrentEnemy { get; private set; }
         public int Turn { get; private set; }
         public int FightTurn { get; private set; }   // фаз защиты против текущего врага
-        public float Difficulty => Testing ? testDifficulty
-            : Mathf.Min(maxDifficulty, Turn * difficultyPerTurn + FightTurn * difficultyPerFightTurn);
+        public float Difficulty => Mathf.Min(maxDifficulty, Turn * difficultyPerTurn + FightTurn * difficultyPerFightTurn);
         public float AttackTimeLeft { get; private set; }
 
         bool enemyHitThisPhase;
@@ -51,11 +50,6 @@ namespace BlackHeart
         public void Stop()
         {
             StopAllCoroutines();
-            if (Testing)
-            {
-                Testing = false;
-                if (gm != null && gm.Player != null) gm.Player.CannotDie = false;
-            }
             if (gm != null && gm.Projectiles != null) gm.Projectiles.BlueRush = false;
             SetPhase(BattlePhase.None);
         }
@@ -149,21 +143,26 @@ namespace BlackHeart
             SetPhase(BattlePhase.Defense);
             gm.Projectiles.BlueRush = true;
             int hpBefore = gm.Player.Hp;
-            var ctx = NewContext(CurrentEnemy.Definition);
+            var ctx = new AttackContext
+            {
+                Difficulty = Difficulty,
+                Box = gm.Box,
+                Target = gm.Box.Current.center,
+                Projectiles = gm.Projectiles,
+                Enemy = CurrentEnemy.Definition,
+                SpecialShare = Mathf.Lerp(specialShareEasy, specialShareMid, Mathf.Clamp01(Difficulty)),
+                MinReactionTime = minReactionTime,
+                Host = this
+            };
             // Серия атак: следующая начинается, когда поле почти расчищено
             int attacks = attacksPerPhase;
-            AttackPattern last = null;
+            string last = null;
             for (int i = 0; i < attacks; i++)
             {
-                AttackPattern attack = CurrentEnemy.Definition.PickAttack();
-                for (int tries = 0; tries < 4 && attack == last; tries++) attack = CurrentEnemy.Definition.PickAttack();
-                last = attack;
-                if (attack != null) yield return attack.Run(ctx);
-                else
-                {
-                    Debug.LogWarning($"[BattleController] У врага «{CurrentEnemy.Definition.name}» нет атак (список attacks пуст).");
-                    yield return new WaitForSeconds(1f);
-                }
+                string id = CurrentEnemy.Definition.PickPattern();
+                for (int tries = 0; tries < 4 && id == last; tries++) id = CurrentEnemy.Definition.PickPattern();
+                last = id;
+                yield return PatternLibrary.Create(id).Run(ctx);
                 if (i < attacks - 1)
                 {
                     // не ждём полной расчистки, чтобы фаза защиты не затягивалась; но на низкой сложности
@@ -196,68 +195,6 @@ namespace BlackHeart
             gm.Box.Shrink();
             yield return CurrentEnemy.Return();
             while (gm.Box.IsAnimating) yield return null;
-        }
-
-        AttackContext NewContext(EnemyDefinition enemy) => new AttackContext
-        {
-            Difficulty = Difficulty,
-            Box = gm.Box,
-            Target = gm.Box.Current.center,
-            Projectiles = gm.Projectiles,
-            Enemy = enemy,
-            SpecialShare = Mathf.Lerp(specialShareEasy, specialShareMid, Mathf.Clamp01(Difficulty)),
-            MinReactionTime = minReactionTime,
-            Host = this
-        };
-
-        // ---------- проверка одной атаки (кнопка в инспекторе префаба атаки) ----------
-
-        public bool Testing { get; private set; }
-        float testDifficulty;
-
-        // Гоняет одну атаку по кругу на заданной сложности: без врага, без фазы удара, сердце не умирает.
-        // Обычный бой при этом останавливается; вернуться — через паузу в главное меню.
-        public void TestAttack(AttackPattern attack, float difficulty)
-        {
-            if (attack == null) return;
-            if (gm.CurrentState != GameManager.State.Playing || gm.Tutorial.IsRunning) gm.StartGame(false);
-            Stop();
-            gm.Projectiles.ClearAll();
-            DespawnEnemy();
-            Testing = true;
-            testDifficulty = difficulty;
-            StartCoroutine(TestLoop(attack));
-        }
-
-        IEnumerator TestLoop(AttackPattern attack)
-        {
-            // враг нужен только как источник соотношения синих и фиолетовых: берём того, у кого эта атака есть
-            EnemyDefinition owner = enemies.Find(e => e != null && e.attacks.Contains(attack));
-            if (owner == null) owner = enemies.Find(e => e != null);
-            if (owner == null)
-            {
-                Debug.LogWarning("[BattleController] В GameBalance нет врагов — атаку не на ком проверить.");
-                Stop();
-                yield break;
-            }
-            gm.Player.CannotDie = true;
-            while (gm.Box.IsAnimating) yield return null;
-            gm.Box.Expand();
-            while (gm.Box.IsAnimating) yield return null;
-            SetPhase(BattlePhase.Defense);
-            gm.Projectiles.BlueRush = true;
-            while (true)
-            {
-                yield return attack.Run(NewContext(owner));
-                float timeout = defenseTimeout;
-                while (gm.Projectiles.Count > 0 && timeout > 0)
-                {
-                    timeout -= Time.deltaTime;
-                    yield return null;
-                }
-                gm.Projectiles.ClearAll();
-                yield return new WaitForSeconds(1f);
-            }
         }
 
         IEnumerator AttackPhase()

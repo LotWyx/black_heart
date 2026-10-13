@@ -41,5 +41,3 @@ MonoBehaviour:
   sliceTolerance: 0.33
   blueRushDelay: 1
   projectilePoolSize: 96
-  musicFadeOut: 0.6
-  musicFadeIn: 1.2

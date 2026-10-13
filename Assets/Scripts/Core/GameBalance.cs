@@ -5,7 +5,7 @@ namespace BlackHeart
 {
     // Баланс игры одним ассетом: Assets/Resources/Data/GameBalance.asset. Меняется в инспекторе, без правки кода.
     // Враги — отдельные ассеты EnemyDefinition в Assets/Resources/Data/Enemies, здесь только их список.
-    // Числа внутри самих атак (скорости, количество пуль) — в префабах атак: Assets/Prefabs/Patterns.
+    // Числа внутри самих атак (скорости, количество пуль) остаются в коде паттернов.
     [CreateAssetMenu(fileName = "GameBalance", menuName = "Black Heart/Баланс игры")]
     public class GameBalance : ScriptableObject
     {
@@ -64,12 +64,6 @@ namespace BlackHeart
         public float blueRushDelay = 1f;
         [Tooltip("Сколько пуль создаётся заранее. Если не хватит, пул дорастёт сам")]
         public int projectilePoolSize = 96;
-
-        [Header("Музыка")]
-        [Tooltip("За сколько секунд затихает трек, когда его сменяет другой")]
-        [Min(0f)] public float musicFadeOut = 0.6f;
-        [Tooltip("За сколько секунд набирает громкость новый трек")]
-        [Min(0f)] public float musicFadeIn = 1.2f;
 
         static GameBalance current;
 
