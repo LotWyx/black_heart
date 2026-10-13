@@ -249,3 +249,69 @@ namespace BlackHeart
         }
     }
 }
+
+namespace BlackHeart
+{
+    // Траектория, которая какое-то время не летит к сердцу, а носится вокруг: пока Roaming — без замедления у сердца
+    public interface IRoamingMotion : IProjectileMotion
+    {
+        bool Roaming(float t);
+    }
+
+    // Зигзаг-пуля: стремительно влетает в рамку, мечется зигзагом вдоль её краёв (по точкам на вписанном
+    // эллипсе — хорды не проходят рядом с сердцем) и только через «фору» бросается в сердце.
+    // Фора отсчитывается с момента входа в рамку: пока пуля за рамкой, время на реакцию не тратится.
+    public sealed class ZigzagDartMotion : IRoamingMotion
+    {
+        readonly Vector2[] points;     // старт за экраном, точки зигзага в рамке, цель
+        readonly float[] times;        // момент прихода в каждую точку
+        readonly float roamUntil;      // когда кончается зигзаг и начинается бросок
+
+        public ZigzagDartMotion(Vector2 start, Rect box, Vector2 target, float headStart, float entrySpeed,
+                                float zigzagSpeed, float dashSpeed)
+        {
+            float rx = box.width / 2f - 0.7f, ry = box.height / 2f - 0.6f;
+            Vector2 c = box.center;
+            var pts = new System.Collections.Generic.List<Vector2> { start };
+            var ts = new System.Collections.Generic.List<float> { 0f };
+
+            // первая точка — на эллипсе со стороны старта
+            float a = Mathf.Atan2((start - c).y / ry, (start - c).x / rx);
+            Vector2 OnEllipse(float ang) => c + new Vector2(Mathf.Cos(ang) * rx, Mathf.Sin(ang) * ry);
+            Vector2 p = OnEllipse(a);
+            float t = Vector2.Distance(start, p) / entrySpeed;
+            pts.Add(p); ts.Add(t);
+            float enteredAt = t;
+
+            // зигзаг: каждый бросок — на 70–115° по эллипсу, направление скачет туда-обратно с перевесом вперёд
+            float dir = Random.value < 0.5f ? 1f : -1f;
+            while (t - enteredAt < headStart)
+            {
+                if (Random.value < 0.35f) dir = -dir;
+                a += dir * Random.Range(70f, 115f) * Mathf.Deg2Rad;
+                Vector2 next = OnEllipse(a);
+                t += Vector2.Distance(p, next) / zigzagSpeed;
+                p = next;
+                pts.Add(p); ts.Add(t);
+            }
+            roamUntil = t;
+            pts.Add(target); ts.Add(t + Vector2.Distance(p, target) / dashSpeed);
+            // за сердцем — по прямой дальше (если промахнулась и её не разрезали, она уже попала)
+            points = pts.ToArray();
+            times = ts.ToArray();
+        }
+
+        public bool Roaming(float t) => t < roamUntil;
+
+        public Vector2 Evaluate(float t)
+        {
+            if (t <= 0f) return points[0];
+            for (int i = 1; i < times.Length; i++)
+                if (t <= times[i]) return Vector2.Lerp(points[i - 1], points[i], (t - times[i - 1]) / (times[i] - times[i - 1]));
+            int n = points.Length;
+            Vector2 d = (points[n - 1] - points[n - 2]).normalized;
+            float v = Vector2.Distance(points[n - 2], points[n - 1]) / (times[n - 1] - times[n - 2]);
+            return points[n - 1] + d * v * (t - times[n - 1]);
+        }
+    }
+}

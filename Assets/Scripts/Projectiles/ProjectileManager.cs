@@ -85,9 +85,23 @@ namespace BlackHeart
                 if (p != null) p.Rush();
         }
 
+        // Очередь к сердцу: сколько одиночных (не синих, не из строя) пуль сейчас в зоне у сердца.
+        // Если их уже NearLimit, следующие притормаживают на границе зоны и ждут — так к сердцу не подходит
+        // больше пуль разом, чем можно успеть разрезать. Строй (стены, клетки, кольца) не трогается.
+        // Размер зоны и лимит — в GameBalance.asset (раздел «Очередь к сердцу»)
+        public static float NearZone => B.heartQueueZone;
+        public static int NearLimit => B.heartQueueLimit;
+        public int NearCount { get; private set; }
+
         // Убитые за кадр пули возвращаются в пул после того, как все отработали свой Update
         void LateUpdate()
         {
+            int near = 0;
+            Vector2 heart = GameManager.I != null ? GameManager.I.Player.Position : Vector2.zero;
+            foreach (var p in active)
+                if (p != null && p.Alive && p.InHeartQueue && Vector2.Distance(p.Position, heart) < NearZone) near++;
+            NearCount = near;
+
             for (int i = active.Count - 1; i >= 0; i--)
             {
                 var p = active[i];

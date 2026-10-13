@@ -35,7 +35,7 @@ namespace BlackHeart
         SpriteRenderer sr, crack;   // crack — трещина поверх осколка, у которого нет своего спрайта половинки
 
         const float FragmentInvulnerability = 0.08f;
-        const float FragmentGap = 0.6f;      // на какую долю длины спрайта осколки расходятся в стороны
+        const float FragmentGap = 1f;      // на какую долю длины спрайта осколки расходятся в стороны
         static readonly float[] DirectionProbes = { 0.05f, 0.25f, 0.6f, 1.2f, 2.5f };
         const float RushSpeed = 30f;         // рывок синей пули в сердце, юнитов в секунду
         const float SpinFrameTime = 0.14f;   // кадры пули — действия (зрачок, челюсть, пламя), не вращение
@@ -61,9 +61,14 @@ namespace BlackHeart
         }
 
         // Новое появление пули: сбрасывает всё состояние прошлой жизни объекта
+        // Темп пули: во сколько раз быстрее (больше 1) или медленнее (меньше 1) она проходит свою траекторию.
+        // Задаётся атакой (плотные атаки высокой сложности медленные, быстрые — разреженные), осколки наследуют.
+        public float Pace { get; set; } = 1f;
+
         public void Init(ProjectileType type, IProjectileMotion motion, float startTime, bool fragment,
             string variant = null, bool formation = false)
         {
+            Pace = 1f;
             SpawnId = ++nextSpawnId;
             Type = type;
             this.motion = motion;
@@ -133,7 +138,7 @@ namespace BlackHeart
                 return;
             }
 
-            time += NearHeartStep(gm, Time.deltaTime);
+            time += NearHeartStep(gm, Time.deltaTime * Pace * QueueFactor(gm));
             transform.position = Displaced(motion.Evaluate(time));
             Orient();
 
@@ -158,12 +163,25 @@ namespace BlackHeart
                 Kill();
         }
 
+        // Участвует ли пуля в очереди к сердцу (ProjectileManager.NearLimit)
+        public bool InHeartQueue => !Formation && Type != ProjectileType.Blue && !(motion is IRoamingMotion r && r.Roaming(time));
+
+        // У границы зоны сердца при полной очереди пуля почти замирает (зависает «в ожидании»), пока кто-то не уйдёт
+        float QueueFactor(GameManager gm)
+        {
+            if (!InHeartQueue || gm.Projectiles.NearCount < ProjectileManager.NearLimit) return 1f;
+            float d = Vector2.Distance(Position, gm.Player.Position);
+            if (d < ProjectileManager.NearZone || d > ProjectileManager.NearZone + 1.2f) return 1f;   // уже внутри или ещё далеко
+            return 0.12f;
+        }
+
         // Ограничение скорости у сердца: в последних юнитах пути пуля не быстрее MaxNearSpeed, чтобы её всегда
         // можно было успеть разрезать (рывки мухи, броски из волны и стены). Траектория та же — замедляется её «время».
         const float SlowRadius = 3f, MaxNearSpeed = 2.6f;
         float NearHeartStep(GameManager gm, float dt)
         {
             if (dt <= 0f) return dt;
+            if (motion is IRoamingMotion roam && roam.Roaming(time)) return dt;   // носится по рамке, не к сердцу
             Vector2 next = motion.Evaluate(time + dt);
             if (Vector2.Distance(next, gm.Player.Position) > SlowRadius) return dt;
             float speed = Vector2.Distance(next, motion.Evaluate(time)) / dt;
@@ -255,8 +273,12 @@ namespace BlackHeart
             Vector2 side = new Vector2(-dir.y, dir.x) * (spriteLength * FragmentGap / 2f);
 
             var manager = GameManager.I.Projectiles;
-            manager.Spawn(ProjectileType.Purple, motion, time, true, variant, Formation).Shift(offset + side);
-            manager.Spawn(ProjectileType.Purple, motion, time, true, variant, Formation).Shift(offset - side);
+            foreach (var s in new[] { side, -side })
+            {
+                var half = manager.Spawn(ProjectileType.Purple, motion, time, true, variant, Formation);
+                half.Shift(offset + s);
+                half.Pace = Pace;
+            }
 
             Debris.Burst(Position, Color, 6, 3f);
             GameEvents.RaiseProjectileSplit(this);
