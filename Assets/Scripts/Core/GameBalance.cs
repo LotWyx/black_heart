@@ -65,6 +65,49 @@ namespace BlackHeart
         [Tooltip("Сколько пуль создаётся заранее. Если не хватит, пул дорастёт сам")]
         public int projectilePoolSize = 96;
 
+        [Header("Высокая сложность: темп атак")]
+        [Tooltip("С этой сложности каждая атака либо «много, но медленно», либо «быстро, но мало синих»")]
+        public float highDifficulty = 1f;
+        [Tooltip("Обычный темп: больше одиночных пуль на поле не появляется")]
+        public int normalFieldCap = 28;
+        [Tooltip("«Много, но медленно»: доля скорости траекторий (меньше 1 — медленнее)")]
+        public float densePace = 0.62f;
+        public int denseFieldCap = 34;
+        [Tooltip("«Много, но медленно»: доля белых пуль, которые становятся фиолетовыми")]
+        [Range(0f, 1f)] public float denseWhiteToPurple = 0.35f;
+        [Tooltip("«Быстро, но мало синих»: доля скорости траекторий (больше 1 — быстрее)")]
+        public float fastPace = 1.25f;
+        public int fastFieldCap = 18;
+        [Tooltip("«Быстро, но мало синих»: доля синих пуль, которые не появляются")]
+        [Range(0f, 1f)] public float fastBlueDrop = 0.75f;
+        [Tooltip("«Быстро, но мало синих»: доля фиолетовых, которые становятся белыми")]
+        [Range(0f, 1f)] public float fastPurpleToWhite = 0.5f;
+
+        [Header("Очередь к сердцу")]
+        [Tooltip("Радиус зоны у сердца (юниты)")]
+        public float heartQueueZone = 3.2f;
+        [Tooltip("Сколько одиночных пуль одновременно может быть в зоне; остальные ждут на её границе")]
+        public int heartQueueLimit = 5;
+
+        [Header("Зигзаг-пуля")]
+        [Tooltip("С какой сложности появляется")]
+        public float zigzagFrom = 0.5f;
+        [Tooltip("Шанс за фазу защиты: на сложности zigzagFrom и на сложности zigzagFrom + 1")]
+        [Range(0f, 1f)] public float zigzagChanceMin = 0.3f;
+        [Range(0f, 1f)] public float zigzagChanceMax = 0.5f;
+        [Tooltip("Секунды форы после входа в рамку: в начале и на высокой сложности")]
+        public float zigzagHeadStartEasy = 3.2f;
+        public float zigzagHeadStartHard = 2.4f;
+        [Tooltip("Скорость зигзага по рамке: в начале и на высокой сложности (юнитов в секунду)")]
+        public float zigzagSpeedEasy = 11f;
+        public float zigzagSpeedHard = 14f;
+        [Tooltip("Скорость влёта из-за экрана в рамку")]
+        public float zigzagEntrySpeed = 16f;
+        [Tooltip("Скорость броска в сердце после форы (у сердца её всё равно притормаживает)")]
+        public float zigzagDashSpeed = 7f;
+        [Tooltip("Шанс, что зигзаг-пуля фиолетовая (только с высокой сложности)")]
+        [Range(0f, 1f)] public float zigzagPurpleChance = 0.3f;
+
         static GameBalance current;
 
         public static GameBalance Current

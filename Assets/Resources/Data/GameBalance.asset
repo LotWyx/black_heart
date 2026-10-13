@@ -41,3 +41,24 @@ MonoBehaviour:
   sliceTolerance: 0.33
   blueRushDelay: 1
   projectilePoolSize: 96
+  highDifficulty: 1
+  normalFieldCap: 28
+  densePace: 0.62
+  denseFieldCap: 34
+  denseWhiteToPurple: 0.35
+  fastPace: 1.25
+  fastFieldCap: 18
+  fastBlueDrop: 0.75
+  fastPurpleToWhite: 0.5
+  heartQueueZone: 3.2
+  heartQueueLimit: 5
+  zigzagFrom: 0.5
+  zigzagChanceMin: 0.3
+  zigzagChanceMax: 0.5
+  zigzagHeadStartEasy: 3.2
+  zigzagHeadStartHard: 2.4
+  zigzagSpeedEasy: 11
+  zigzagSpeedHard: 14
+  zigzagEntrySpeed: 16
+  zigzagDashSpeed: 7
+  zigzagPurpleChance: 0.3

@@ -14,6 +14,10 @@ namespace BlackHeart
         public abstract IEnumerator Run(AttackContext ctx);
     }
 
+    // Темп атаки на высокой сложности: либо пуль много, но они медленные (и много фиолетовых),
+    // либо они быстрые, но их меньше и синих почти нет. Normal — обычный темп.
+    public enum AttackTempo { Normal, Dense, Fast }
+
     // Всё, что нужно паттерну: сложность, рамка, цель, правила баланса и создание пуль
     public class AttackContext
     {
@@ -63,13 +67,52 @@ namespace BlackHeart
         // Для колец: синее кольцо целиком синее и не смешивается с остальными
         public bool RollBlueRing() => Random.value < SpecialShare * Enemy.BlueRatio;
 
-        public Projectile Spawn(ProjectileType type, IProjectileMotion motion) => Projectiles.Spawn(type, motion);
+        // ---------- темп ----------
+
+        public AttackTempo Tempo = AttackTempo.Normal;
+        public float Pace = 1f;          // темп траекторий всех пуль атаки
+        public int FieldCap = 999;       // больше пуль на поле одиночные не появляются
+        // Значения темпов — в GameBalance.asset (раздел «Высокая сложность: темп атак»)
+
+        // Задать темп атаки (BattleController — перед каждой атакой серии)
+        public void SetTempo(AttackTempo tempo)
+        {
+            var b = GameBalance.Current;
+            Tempo = tempo;
+            Pace = tempo == AttackTempo.Dense ? b.densePace : tempo == AttackTempo.Fast ? b.fastPace : 1f;
+            FieldCap = tempo == AttackTempo.Dense ? b.denseFieldCap : tempo == AttackTempo.Fast ? b.fastFieldCap : b.normalFieldCap;
+        }
+
+        // Одиночная пуля в текущем темпе: в плотной атаке белые часто становятся фиолетовыми, в быструю
+        // синие почти не попадают, а фиолетовые чаще становятся белыми. Перебор пуль на поле — пропуск.
+        bool Admit(ref ProjectileType type)
+        {
+            if (Projectiles.Count >= FieldCap) return false;
+            var b = GameBalance.Current;
+            if (Tempo == AttackTempo.Dense && type == ProjectileType.White && Random.value < b.denseWhiteToPurple) type = ProjectileType.Purple;
+            if (Tempo == AttackTempo.Fast)
+            {
+                if (type == ProjectileType.Blue && Random.value < b.fastBlueDrop) return false;
+                if (type == ProjectileType.Purple && Random.value < b.fastPurpleToWhite) type = ProjectileType.White;
+            }
+            return true;
+        }
+
+        Projectile Paced(Projectile p)
+        {
+            if (p != null) p.Pace = Pace;
+            return p;
+        }
+
+        // Одиночная пуля (может не появиться: перебор на поле или быстрая атака без синих) — результат может быть null
+        public Projectile Spawn(ProjectileType type, IProjectileMotion motion) => Spawn(type, motion, null);
         // variant — особый вид пули (Bone — кость Скелета, Spirit — призрак маятника)
         public Projectile Spawn(ProjectileType type, IProjectileMotion motion, string variant) =>
-            Projectiles.Spawn(type, motion, 0f, false, variant);
-        // Пуля группы (стена, клетка, волна, круг): за рамкой её не видно и не разрезать
+            Admit(ref type) ? Paced(Projectiles.Spawn(type, motion, 0f, false, variant)) : null;
+        // Пуля группы (стена, клетка, волна, круг): за рамкой её не видно и не разрезать.
+        // Строй не прореживается (иначе ломается рисунок), меняется только темп.
         public Projectile SpawnFormation(ProjectileType type, IProjectileMotion motion, string variant = null) =>
-            Projectiles.Spawn(type, motion, 0f, false, variant, true);
+            Paced(Projectiles.Spawn(type, motion, 0f, false, variant, true));
 
         // ---------- для паттернов врагов ----------
 

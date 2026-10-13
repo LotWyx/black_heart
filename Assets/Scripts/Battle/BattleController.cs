@@ -154,6 +154,10 @@ namespace BlackHeart
                 MinReactionTime = minReactionTime,
                 Host = this
             };
+            // Зигзаг-пуля: с середины сложности, с шансом, раз за фазу — посреди серии атак
+            if (Random.value < ZigzagDart.Chance(Difficulty))
+                StartCoroutine(ZigzagDart.SpawnAfter(ctx, Random.Range(1.5f, 4f)));
+
             // Серия атак: следующая начинается, когда поле почти расчищено
             int attacks = attacksPerPhase;
             string last = null;
@@ -162,6 +166,9 @@ namespace BlackHeart
                 string id = CurrentEnemy.Definition.PickPattern();
                 for (int tries = 0; tries < 4 && id == last; tries++) id = CurrentEnemy.Definition.PickPattern();
                 last = id;
+                // Высокая сложность: каждая атака либо плотная и медленная, либо быстрая и редкая, почти без синих
+                ctx.SetTempo(Difficulty < B.highDifficulty ? AttackTempo.Normal
+                             : Random.value < 0.5f ? AttackTempo.Dense : AttackTempo.Fast);
                 yield return PatternLibrary.Create(id).Run(ctx);
                 if (i < attacks - 1)
                 {
