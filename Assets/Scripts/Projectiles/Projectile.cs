@@ -35,7 +35,7 @@ namespace BlackHeart
         SpriteRenderer sr, crack;   // crack — трещина поверх осколка, у которого нет своего спрайта половинки
 
         const float FragmentInvulnerability = 0.08f;
-        const float FragmentGap = 0.6f;      // на какую долю длины спрайта осколки расходятся в стороны
+        const float FragmentGap = 1f;      // на какую долю длины спрайта осколки расходятся в стороны
         static readonly float[] DirectionProbes = { 0.05f, 0.25f, 0.6f, 1.2f, 2.5f };
         const float RushSpeed = 30f;         // рывок синей пули в сердце, юнитов в секунду
         const float SpinFrameTime = 0.14f;   // кадры пули — действия (зрачок, челюсть, пламя), не вращение

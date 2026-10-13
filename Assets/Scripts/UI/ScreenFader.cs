@@ -8,7 +8,7 @@ namespace BlackHeart
     // Работает в реальном времени, поэтому не зависит от паузы.
     public class ScreenFader : MonoBehaviour
     {
-        const float FadeTime = 0.3f;   // секунды в одну сторону
+        public const float FadeTime = 0.3f;   // секунды в одну сторону
         const int Steps = 6;
 
         float darkness;                // 0 — картинка видна, 1 — чёрный экран
@@ -17,6 +17,8 @@ namespace BlackHeart
 
         // Идёт переход: меню в это время не принимают ввод
         public bool Busy => direction != 0;
+        // Экран сейчас гаснет: музыка затихает вместе с ним
+        public bool Darkening => direction > 0;
 
 
         // Затемнить, выполнить action в темноте, проявить. Если переход уже идёт — false, action не выполняется

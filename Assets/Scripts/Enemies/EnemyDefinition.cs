@@ -14,8 +14,8 @@ namespace BlackHeart
         public int minHp = 5;
         public int maxHp = 5;
 
-        [Tooltip("Id атак из PatternLibrary. Повтор id делает атаку чаще")]
-        public List<string> patterns = new List<string>();
+        [Tooltip("Префабы атак из Assets/Prefabs/Patterns. Повтор префаба делает атаку чаще")]
+        public List<AttackPattern> attacks = new List<AttackPattern>();
 
         [Header("Особые пули: соотношение фиолетовых и синих")]
         public float purpleWeight = 0.5f;
@@ -23,8 +23,9 @@ namespace BlackHeart
 
         public string laughText = "ХА-ХА-ХА!";
 
-        public string PickPattern() =>
-            patterns.Count > 0 ? patterns[Random.Range(0, patterns.Count)] : StraightPattern.ID;
+        // Случайная атака из списка; null — если атак нет
+        public AttackPattern PickAttack() =>
+            attacks.Count > 0 ? attacks[Random.Range(0, attacks.Count)] : null;
 
         public float BlueRatio
         {

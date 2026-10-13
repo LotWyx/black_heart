@@ -16,7 +16,7 @@ MonoBehaviour:
   spriteId: Enemies/Moonface
   minHp: 5
   maxHp: 5
-  patterns: []
+  attacks: []
   purpleWeight: 0.5
   blueWeight: 0.5
   laughText: 
