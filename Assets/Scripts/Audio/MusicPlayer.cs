@@ -26,7 +26,7 @@ namespace BlackHeart
         {
             for (int i = 0; i < 2; i++)
             {
-                sources[i] = gameObject.AddComponent<AudioSource>();
+                sources[i] = GameAudio.AddSource(gameObject, true);
                 sources[i].loop = true;
                 sources[i].playOnAwake = false;
             }
@@ -79,7 +79,7 @@ namespace BlackHeart
 
         void ApplyVolume()
         {
-            float v = GameSettings.MusicVolume;
+            const float v = 1f;   // громкость из настроек задаёт группа Music в микшере
             var current = sources[active];
             var previous = sources[1 - active];
             current.volume = v * fade;

@@ -120,10 +120,10 @@ namespace BlackHeart
         public ProjectileType RollType(float specialShare) =>
             Random.value < specialShare ? Enemy.PickSpecialType() : ProjectileType.White;
 
-        public static int AliveCount(List<Projectile> list)
+        public static int AliveCount(List<ProjectileHandle> list)
         {
             int n = 0;
-            foreach (var p in list) if (p != null && p.Alive) n++;
+            foreach (var p in list) if (p.Alive) n++;
             return n;
         }
 

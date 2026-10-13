@@ -7,7 +7,7 @@ namespace BlackHeart
 {
     // Вступление в духе Undertale: три картинки (Resources/Art/Intro/Scene1..3, по 4 кадра лёгкой анимации),
     // окно медленно едет по каждой; ниже текст печатной машинкой. Картинки появляются и гаснут ступенями,
-    // после третьей — резкий переход в главное меню. Играет при каждом запуске;
+    // после третьей экран гаснет и проявляется главное меню. Играет при каждом запуске;
     // пропуск — Esc или нажатие в правом нижнем углу экрана, где подсказка.
     public class IntroController : MonoBehaviour
     {
@@ -36,6 +36,7 @@ namespace BlackHeart
         public bool IsPlaying { get; private set; }
 
         Action onDone;
+        bool finishing;   // идёт затемнение перед меню: картинка стоит, ввод не принимается
         int scene;
         float time;
         int typed;
@@ -46,7 +47,7 @@ namespace BlackHeart
 
         void Awake()
         {
-            voice = gameObject.AddComponent<AudioSource>();
+            voice = GameAudio.AddSource(gameObject, false);
             voice.playOnAwake = false;
         }
 
@@ -59,6 +60,7 @@ namespace BlackHeart
                 frames[i] = ArtLibrary.Frames(Scenes[i].id, null, Scenes[i].frameWidth);
             }
             onDone = done;
+            finishing = false;
             scene = 0;
             time = 0;
             typed = 0;
@@ -68,14 +70,24 @@ namespace BlackHeart
 
         void Finish()
         {
-            if (!IsPlaying) return;
+            if (!IsPlaying || finishing) return;
+            finishing = true;
+            // последняя картинка остаётся на экране, пока он гаснет; меню появляется уже в темноте
+            bool started = gm.Fader.Transition(() =>
+            {
+                IsPlaying = false;
+                finishing = false;
+                onDone?.Invoke();
+            });
+            if (started) return;
             IsPlaying = false;
-            onDone?.Invoke();   // резкий переход: меню появляется в этом же кадре
+            finishing = false;
+            onDone?.Invoke();
         }
 
         void Update()
         {
-            if (!IsPlaying) return;
+            if (!IsPlaying || finishing) return;
             if (SkipPressed()) { Finish(); return; }
 
             time += Mathf.Min(Time.unscaledDeltaTime, 0.1f);   // подвисание не должно проглатывать сцену
@@ -85,7 +97,7 @@ namespace BlackHeart
             {
                 if (sc.text[i] == ' ' || i % 2 != 0) continue;
                 voice.pitch = UnityEngine.Random.Range(1.45f, 1.6f);   // сухой «щелчок» машинки, выше голоса Луноликого
-                voice.PlayOneShot(SfxSynth.Voice, GameSettings.SoundVolume * 0.8f);
+                voice.PlayOneShot(SfxSynth.Voice, 0.8f);
                 break;
             }
             typed = visible;
@@ -95,7 +107,12 @@ namespace BlackHeart
                 scene++;
                 time = 0;
                 typed = 0;
-                if (scene >= Scenes.Length) Finish();
+                if (scene >= Scenes.Length)
+                {
+                    scene = Scenes.Length - 1;         // последняя картинка стоит, пока экран гаснет
+                    time = Scenes[scene].duration;
+                    Finish();
+                }
             }
         }
 
@@ -133,7 +150,7 @@ namespace BlackHeart
             t = t * t * (3f - 2f * t);
             Vector2 pan = new Vector2(Mathf.Round(Mathf.Lerp(sc.panFrom.x, sc.panTo.x, t)), Mathf.Round(Mathf.Lerp(sc.panFrom.y, sc.panTo.y, t)));
             var tex = sprite.texture;
-            Rect r = sprite.rect;
+            Rect r = sprite.textureRect;
             var uv = new Rect((r.x + pan.x) / tex.width, (r.y + r.height - pan.y - WindowH) / tex.height,
                               WindowW / tex.width, WindowH / tex.height);
             var prev = GUI.color;

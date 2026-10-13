@@ -226,17 +226,41 @@ public static class PixelFont
         return style;
     }
 
+    // Текст рисуется десятки раз за кадр (контуры, тени, две фазы IMGUI), поэтому перевод в верхний регистр
+    // и измеренная ширина запоминаются: повторная отрисовка той же строки не создаёт мусора.
+    const int CacheLimit = 1024;   // печатающиеся и меняющиеся строки не должны копиться бесконечно
+    static readonly Dictionary<string, string> upperCache = new Dictionary<string, string>();
+    static readonly Dictionary<(string, int), float> widthCache = new Dictionary<(string, int), float>();
+    static readonly GUIContent measureContent = new GUIContent();
+
+    static string Upper(string text)
+    {
+        if (upperCache.TryGetValue(text, out var upper)) return upper;
+        upper = text.ToUpperInvariant();
+        if (upperCache.Count >= CacheLimit) upperCache.Clear();
+        upperCache[text] = upper;
+        if (!ReferenceEquals(upper, text)) upperCache[upper] = upper;
+        return upper;
+    }
+
     public static float Width(string text, float scale)
     {
-        text = text.ToUpperInvariant();
+        text = Upper(text);
         if (MainFont == null) return (text.Length * Advance - 1) * scale;
-        return Mathf.Round(StyleFor(scale).CalcSize(new GUIContent(text)).x);
+        var style = StyleFor(scale);
+        var key = (text, style.fontSize);
+        if (widthCache.TryGetValue(key, out float width)) return width;
+        measureContent.text = text;
+        width = Mathf.Round(style.CalcSize(measureContent).x);
+        if (widthCache.Count >= CacheLimit) widthCache.Clear();
+        widthCache[key] = width;
+        return width;
     }
 
     // y — верх заглавных букв; align: -1 — по левому краю от x, 0 — по центру, 1 — по правому краю
     public static void Draw(string text, float x, float y, float scale, Color color, int align = -1)
     {
-        text = text.ToUpperInvariant();
+        text = Upper(text);
         float w = Width(text, scale);
         if (align == 0) x -= w / 2f;
         else if (align > 0) x -= w;

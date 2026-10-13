@@ -1,30 +1,30 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace BlackHeart
 {
-    // Описание врага. Редактируется в инспекторе (BattleController.enemies).
-    [Serializable]
-    public class EnemyDefinition
+    // Описание врага — ассет в Assets/Resources/Data/Enemies. Редактируется в инспекторе;
+    // чтобы враг появился в бою, добавьте его в список GameBalance.enemies.
+    [CreateAssetMenu(fileName = "Enemy", menuName = "Black Heart/Враг")]
+    public class EnemyDefinition : ScriptableObject
     {
         public string displayName = "ВРАГ";
         [Tooltip("Путь спрайта внутри Assets/Resources/Art, например Enemies/Ghost")]
         public string spriteId = ArtIds.EnemyGhost;
-        public int minHp = 2;
-        public int maxHp = 3;
+        public int minHp = 5;
+        public int maxHp = 5;
 
-        [Tooltip("Id паттернов из PatternLibrary: straight, zigzag, spiral, drunk, boom")]
-        public List<string> patterns = new List<string> { StraightPattern.ID };
+        [Tooltip("Id атак из PatternLibrary. Повтор id делает атаку чаще")]
+        public List<string> patterns = new List<string>();
 
         [Header("Особые пули: соотношение фиолетовых и синих")]
-        public float purpleWeight = 0.6f;
-        public float blueWeight = 0.4f;
+        public float purpleWeight = 0.5f;
+        public float blueWeight = 0.5f;
 
         public string laughText = "ХА-ХА-ХА!";
 
         public string PickPattern() =>
-            patterns.Count > 0 ? patterns[UnityEngine.Random.Range(0, patterns.Count)] : StraightPattern.ID;
+            patterns.Count > 0 ? patterns[Random.Range(0, patterns.Count)] : StraightPattern.ID;
 
         public float BlueRatio
         {
@@ -38,7 +38,7 @@ namespace BlackHeart
         public ProjectileType PickSpecialType(bool allowBlue = true)
         {
             if (!allowBlue) return ProjectileType.Purple;
-            return UnityEngine.Random.value < BlueRatio ? ProjectileType.Blue : ProjectileType.Purple;
+            return Random.value < BlueRatio ? ProjectileType.Blue : ProjectileType.Purple;
         }
     }
 }

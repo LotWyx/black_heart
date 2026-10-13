@@ -47,3 +47,8 @@ crashlytics-build.properties
 /Captures/
 /_OldPrototype_backup/
 /_ArtBackup_before_aseprite/
+
+# Локальные файлы редактора и аварийные копии
+/UpgradeLog*.htm
+/Assets/_Recovery/
+/Assets/_Recovery.meta

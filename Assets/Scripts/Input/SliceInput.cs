@@ -64,7 +64,7 @@ namespace BlackHeart
             }
             IsPressed = pressed;
 
-            visual.Show(points.ToArray(), pressed);
+            visual.Show(points, pressed);
         }
     }
 
@@ -107,16 +107,32 @@ namespace BlackHeart
             return line;
         }
 
+        Vector3[] buffer = new Vector3[32];   // общий массив точек: растёт при нужде, заново не создаётся
+
         // points — от хвоста к кончику; tipOn — показать ромбик на кончике
-        public void Show(Vector3[] points, bool tipOn)
+        public void Show(List<Vector3> points, bool tipOn)
         {
-            trail.positionCount = glow.positionCount = points.Length;
-            trail.SetPositions(points);
-            glow.SetPositions(points);
-            tip.enabled = tipOn && points.Length > 1;
-            if (tip.enabled) tip.transform.position = points[points.Length - 1];
+            if (buffer.Length < points.Count) buffer = new Vector3[Mathf.NextPowerOfTwo(points.Count)];
+            points.CopyTo(buffer);
+            Apply(points.Count, tipOn);
         }
 
-        public void Hide() => Show(new Vector3[0], false);
+        public void Show(Vector3[] points, bool tipOn)
+        {
+            if (buffer.Length < points.Length) buffer = new Vector3[Mathf.NextPowerOfTwo(points.Length)];
+            System.Array.Copy(points, buffer, points.Length);
+            Apply(points.Length, tipOn);
+        }
+
+        void Apply(int count, bool tipOn)
+        {
+            trail.positionCount = glow.positionCount = count;
+            trail.SetPositions(buffer);   // берутся первые positionCount точек
+            glow.SetPositions(buffer);
+            tip.enabled = tipOn && count > 1;
+            if (tip.enabled) tip.transform.position = buffer[count - 1];
+        }
+
+        public void Hide() => Apply(0, false);
     }
 }

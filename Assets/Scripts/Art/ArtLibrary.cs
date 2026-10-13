@@ -3,9 +3,9 @@ using UnityEngine;
 
 namespace BlackHeart
 {
-    // Единая точка доступа к графике. Сначала ищет спрайт в Resources/Art/<id>
-    // (детализированные PNG из Tools/generate_sprites.py), если его нет —
-    // строит упрощённый запасной спрайт из PixelArt.
+    // Единая точка доступа к графике: спрайты лежат в Resources/Art/<id> и грузятся по id из ArtIds.
+    // Спрайты врагов и мелкие спрайты упакованы в атласы (Assets/Art/Atlases). Поэтому везде, где нужна
+    // область спрайта в текстуре, берётся textureRect (место в атласе), а не rect (место в исходном PNG).
     public static class ArtLibrary
     {
         public const float PPU = 16f;   // пикселей на юнит у PNG-спрайтов
@@ -25,13 +25,9 @@ namespace BlackHeart
             sprite = Resources.Load<Sprite>(ResourcesRoot + id);
             if (sprite == null)
             {
-                var tex = PixelArt.CreateTexture(id);
-                if (tex == null)
-                {
-                    Debug.LogWarning($"[ArtLibrary] Нет спрайта '{id}', используется заглушка.");
-                    tex = Texture2D.whiteTexture;
-                }
-                sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), PixelArt.FallbackPPU);
+                Debug.LogWarning($"[ArtLibrary] Нет спрайта '{id}', используется белая заглушка.");
+                var tex = Texture2D.whiteTexture;
+                sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), PPU);
                 sprite.name = id;
             }
             cache[id] = sprite;
@@ -53,7 +49,7 @@ namespace BlackHeart
             }
             else
             {
-                Rect r = strip.rect;
+                Rect r = strip.textureRect;
                 int size = frameWidth > 0 ? frameWidth : Mathf.RoundToInt(r.height);
                 int count = Mathf.Max(1, Mathf.RoundToInt(r.width) / size);
                 result = new Sprite[count];
@@ -100,7 +96,7 @@ namespace BlackHeart
         {
             if (!halves.TryGetValue(sprite, out var pair) || pair[0] == null || pair[1] == null)
             {
-                Rect r = sprite.rect;
+                Rect r = sprite.textureRect;
                 float hw = Mathf.Floor(r.width / 2f);
                 pair = new[]
                 {

@@ -12,10 +12,10 @@ namespace BlackHeart
 
         public enum State { Menu, Playing, Dying, GameOver }
 
-        [Header("Игрок")]
-        public int playerMaxHp = 10;
-        public float playerHitRadius = 0.35f;
-        public float playerInvulnTime = 0.4f;
+        // Параметры игрока — в ассете GameBalance
+        public int playerMaxHp => GameBalance.Current.playerMaxHp;
+        public float playerHitRadius => GameBalance.Current.playerHitRadius;
+        public float playerInvulnTime => GameBalance.Current.playerInvulnTime;
 
         public State CurrentState { get; private set; }
         public bool IsPlaying => CurrentState == State.Playing && !Paused;
@@ -32,6 +32,7 @@ namespace BlackHeart
         public MainMenu Menu { get; private set; }
         public TutorialController Tutorial { get; private set; }
         public IntroController Intro { get; private set; }
+        public ScreenFader Fader { get; private set; }
 
         float stateTime;
 
@@ -62,6 +63,7 @@ namespace BlackHeart
             Tutorial = Ensure<TutorialController>();
             Ensure<PauseMenu>();
             Intro = Ensure<IntroController>();
+            Fader = Ensure<ScreenFader>();
 
             Slicer.OnSlice += HandleSlice;
             GameEvents.OnPlayerDied += HandlePlayerDied;
@@ -83,7 +85,7 @@ namespace BlackHeart
         {
             GameSettings.Apply();
             ShowMenu();
-            // вступление при каждом запуске; меню открывается резко, когда оно кончится или его пропустят
+            // вступление при каждом запуске; когда оно кончится или его пропустят, экран гаснет и проявляется уже меню
             Menu.Hide();
             if (!Intro.Play(() => Menu.Show())) Menu.Show();
         }
@@ -154,8 +156,9 @@ namespace BlackHeart
         void Update()
         {
             stateTime += Time.deltaTime;
+            // с экрана проигрыша в меню — через затемнение (сам экран проигрыша появляется резко)
             if (CurrentState == State.GameOver && stateTime > 3f && Slicer.PressedThisFrame)
-                ShowMenu();
+                Fader.Transition(ShowMenu);
         }
 
         // Пауза: время стоит, бой и обучение не реагируют на ввод
@@ -175,7 +178,7 @@ namespace BlackHeart
         public void QuitToMenu()
         {
             Score.CommitBest();
-            ShowMenu();
+            Fader.Transition(ShowMenu);
         }
 
         void HandlePlayerDied() => StartCoroutine(GameOverSequence());

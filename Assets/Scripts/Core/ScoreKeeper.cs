@@ -2,22 +2,19 @@ using UnityEngine;
 
 namespace BlackHeart
 {
-    // Очки и правила их начисления.
+    // Очки забега и рекорд. Сколько очков за что даётся — в ассете GameBalance, рекорд хранит SaveSystem.
     public class ScoreKeeper : MonoBehaviour
     {
-        [Header("Очки")]
-        public int whiteBullet = 10;
-        public int purpleFragment = 15;
-        public int blueBulletPenalty = -25;
-        public int enemyDefeated = 200;
-        public int cleanDefense = 50;     // фаза защиты пройдена без урона
+        static GameBalance B => GameBalance.Current;
+
+        public int whiteBullet => B.whiteBullet;
+        public int purpleFragment => B.purpleFragment;
+        public int blueBulletPenalty => B.blueBulletPenalty;
+        public int enemyDefeated => B.enemyDefeated;
+        public int cleanDefense => B.cleanDefense;
 
         public int Score { get; private set; }
-        public int Best { get; private set; }
-
-        const string BestKey = "blackheart.best";
-
-        void Awake() => Best = PlayerPrefs.GetInt(BestKey, 0);
+        public int Best => SaveSystem.Data.bestScore;
 
         public void ResetScore()
         {
@@ -34,9 +31,8 @@ namespace BlackHeart
         public bool CommitBest()
         {
             if (Score <= Best) return false;
-            Best = Score;
-            PlayerPrefs.SetInt(BestKey, Best);
-            PlayerPrefs.Save();
+            SaveSystem.Data.bestScore = Score;
+            SaveSystem.Save();
             return true;
         }
     }

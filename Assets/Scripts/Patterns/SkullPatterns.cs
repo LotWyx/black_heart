@@ -31,13 +31,13 @@ namespace BlackHeart
                 float slideDistance = Mathf.Abs(ctx.Target.x - x0) * 0.5f;
                 float launchAt = slideDistance / wallSpeed + StandTime;
 
-                var bones = new List<Projectile>();
+                var bones = new List<ProjectileHandle>();
                 for (int i = 0; i < count; i++)
                 {
                     float y = Mathf.Lerp(r.yMin + 0.5f, r.yMax - 0.5f, (float)i / (count - 1));
                     var type = i == white ? ProjectileType.White : ProjectileType.Blue;
                     var motion = new BoneWallMotion(new Vector2(x0, y), slideDir, slideDistance, wallSpeed, launchAt, ctx.Target, LaunchSpeed);
-                    bones.Add(ctx.SpawnFormation(type, motion, Bone));
+                    bones.Add(new ProjectileHandle(ctx.SpawnFormation(type, motion, Bone)));
                 }
 
                 // следующая стена — с другой стороны и только когда эта закончилась

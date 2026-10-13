@@ -38,7 +38,7 @@ namespace BlackHeart
         {
             var sprite = ArtLibrary.Get(id);
             var tex = sprite.texture;
-            Rect r = sprite.rect;
+            Rect r = sprite.textureRect;   // место спрайта в атласе
             var uv = new Rect(r.x / tex.width, r.y / tex.height, r.width / tex.width, r.height / tex.height);
             if (flipX) uv = new Rect(uv.xMax, uv.y, -uv.width, uv.height);
             if (flipY) uv = new Rect(uv.x, uv.yMax, uv.width, -uv.height);
@@ -91,6 +91,13 @@ namespace BlackHeart
             PixelFont.Draw(text, g.x, g.y, s, color, align);
         }
 
+        // Текст без тени, размером в один игровой пиксель, от левого края
+        public static void TextPlain(string text, float x, float y, Color color)
+        {
+            Vector2 g = Pixel.RtToGui(x, y);
+            PixelFont.Draw(text, g.x, g.y, Scale, color, -1);
+        }
+
         public static float Width(string text, float scale = 1) => PixelFont.Width(text, Scale * scale) / Scale;
 
         // Плашка выбранного пункта меню в стиле рамки боя: тень, тёмная подложка с кровавым отсветом,
@@ -135,7 +142,7 @@ namespace BlackHeart
         {
             var sprite = ArtLibrary.Get(ArtIds.MenuOrnament);
             var tex = sprite.texture;
-            Rect r = sprite.rect;
+            Rect r = sprite.textureRect;   // место спрайта в атласе
             var uv = new Rect(r.x / tex.width, r.y / tex.height, r.width / tex.width, r.height / tex.height);
             var flipped = new Rect(uv.xMax, uv.y, -uv.width, uv.height);
             float oy = y + Mathf.Floor((h - r.height) / 2f);

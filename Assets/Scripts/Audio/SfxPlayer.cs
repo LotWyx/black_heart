@@ -12,7 +12,7 @@ namespace BlackHeart
         void Awake()
         {
             SfxSynth.Init();
-            source = gameObject.AddComponent<AudioSource>();
+            source = GameAudio.AddSource(gameObject, false);
         }
 
         void OnEnable()
@@ -49,7 +49,7 @@ namespace BlackHeart
         {
             if (clip == null) return;
             source.pitch = pitch;
-            source.PlayOneShot(clip, volume * GameSettings.SoundVolume);
+            source.PlayOneShot(clip, volume);
         }
 
         void OnGameStarted() => Play(SfxSynth.Start);

@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8fe1adc0d4a11040ab16c58d33a037e, type: 3}
+  m_Name: GameBalance
+  m_EditorClassIdentifier: Assembly-CSharp::BlackHeart.GameBalance
+  enemies:
+  - {fileID: 11400000, guid: 9b4e7d3ee7ad7444290b56b93a57f221, type: 2}
+  - {fileID: 11400000, guid: d5373c0907bf61b499ab155e89c61469, type: 2}
+  - {fileID: 11400000, guid: ec74b8b72887538488185add69859de8, type: 2}
+  tutorialBoss: {fileID: 11400000, guid: 378336dc89d496148adfe526da9c597e, type: 2}
+  playerMaxHp: 10
+  playerHitRadius: 0.35
+  playerInvulnTime: 0.4
+  attackWindow: 3
+  missedAttackDamage: 1
+  attacksPerPhase: 2
+  pauseBetweenAttacks: 0.4
+  defenseTimeout: 25
+  healOnVictory: 2
+  topHudSpace: 0.4
+  difficultyPerTurn: 0.05
+  difficultyPerFightTurn: 0.18
+  maxDifficulty: 2
+  specialShareEasy: 0.2
+  specialShareMid: 0.3
+  minReactionTime: 1.5
+  whiteBullet: 10
+  purpleFragment: 15
+  blueBulletPenalty: -25
+  enemyDefeated: 200
+  cleanDefense: 50
+  sliceTolerance: 0.33
+  blueRushDelay: 1
+  projectilePoolSize: 96
