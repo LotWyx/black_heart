@@ -1,0 +1,32 @@
+# Переводы строк: в репозитории всегда LF, Git сам приводит их при checkout
+* text=auto eol=lf
+
+# Код и тексты
+*.cs        text diff=csharp
+*.lua       text
+*.md        text
+*.json      text
+*.asmdef    text
+*.yml       text
+
+# Ассеты Unity хранятся как текст (Force Text). Слияние сцен, префабов и ассетов —
+# через UnityYAMLMerge (Smart Merge), см. CONTRIBUTING.md → «Слияние ассетов Unity»
+*.unity      merge=unityyamlmerge text eol=lf linguist-generated
+*.prefab     merge=unityyamlmerge text eol=lf linguist-generated
+*.asset      merge=unityyamlmerge text eol=lf linguist-generated
+*.mat        merge=unityyamlmerge text eol=lf linguist-generated
+*.anim       merge=unityyamlmerge text eol=lf linguist-generated
+*.controller merge=unityyamlmerge text eol=lf linguist-generated
+*.mixer      merge=unityyamlmerge text eol=lf linguist-generated
+*.spriteatlasv2 merge=unityyamlmerge text eol=lf linguist-generated
+*.meta       merge=unityyamlmerge text eol=lf linguist-generated
+
+# Двоичные файлы: без диффов и без попыток слияния
+*.png       binary
+*.jpg       binary
+*.ogg       binary
+*.mp3       binary
+*.wav       binary
+*.ttf       binary
+*.aseprite  binary
+*.dll       binary

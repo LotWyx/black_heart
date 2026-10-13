@@ -136,25 +136,33 @@
 git clone git@github.com:LotWyx/black_heart.git
 ```
 
-Открой папку в Unity Hub, сцена — `Assets/Scenes/SampleScene.unity`.
+Открой папку в Unity Hub, сцена — `Assets/Scenes/Game.unity`.
 Сборка: **File → Build Profiles → Windows → Build**.
+
+> Хочешь поучаствовать? Сначала прочитай [**CONTRIBUTING.md**](CONTRIBUTING.md): ветки и Pull Request,
+> как коммитить ассеты Unity вместе с `.meta`, тесты и CI. История изменений — в [CHANGELOG.md](CHANGELOG.md).
 
 ### Устройство проекта
 
 ```
 Assets/
+├── Scenes/Game.unity       единственная сцена — GameManager собирает всё кодом
 ├── Scripts/
-│   ├── Core/          GameManager, пиксельная камера 320×180, события, настройки
-│   ├── Battle/        цикл боя (защита ↔ атака), сложность, обучение
-│   ├── Patterns/      атаки врагов: AttackPattern + реестр PatternLibrary
-│   ├── Projectiles/   пули и их траектории — чистые функции времени
-│   ├── Enemies/       враги и их наборы атак (EnemyRoster)
-│   ├── UI/            HUD, меню, пауза, вступление, пиксельный шрифт
-│   └── Audio/ FX/ Input/ Player/ Arena/ Art/
+│   ├── Runtime/            код игры (сборка BlackHeart.Runtime)
+│   │   ├── Core/           GameManager, пиксельная камера 320×180, события, баланс, сохранения
+│   │   ├── Battle/         цикл боя (защита ↔ атака), сложность, обучение
+│   │   ├── Patterns/       атаки врагов: AttackPattern + реестр PatternLibrary
+│   │   ├── Projectiles/    пули, пул и траектории — чистые функции времени
+│   │   └── Enemies/ UI/ Audio/ FX/ Input/ Player/ Arena/ Art/
+│   └── Editor/             правила импорта (BlackHeart.Editor)
+├── Tests/EditMode/         автотесты (BlackHeart.Tests.EditMode)
 └── Resources/
-    ├── Art/           спрайты (генерируются из Art/Source)
-    └── Audio/Music/   Intro_ · Menu_ · Battle_ · GameOver_
-Art/Source/            Lua-генераторы пиксель-арта для Aseprite и исходники .aseprite
+    ├── Data/               GameBalance.asset и враги — баланс без правки кода
+    ├── Art/                спрайты (генерируются из Art/Source)
+    └── Audio/Music/        Intro_ · Menu_ · Battle_ · GameOver_
+Art/Source/                 Lua-генераторы пиксель-арта для Aseprite и исходники .aseprite
+tools/ci/                   проверка проекта без Unity
+.github/                    CI (GitHub Actions), шаблоны Pull Request и задач
 ```
 
 ### Как устроены атаки

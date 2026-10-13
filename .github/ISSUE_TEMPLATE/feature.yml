@@ -1,0 +1,17 @@
+name: Идея / задача
+description: Новая механика, атака, правка баланса или графики
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: Что нужно сделать
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Зачем
+      description: Какую проблему игрока это решает
+  - type: textarea
+    attributes:
+      label: Как понять, что готово
+      placeholder: Например — «на сложности 1.5 к сердцу за 0.5 с подлетает не больше 7 пуль»

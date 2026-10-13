@@ -1,0 +1,104 @@
+# CI Black Heart
+#  checks  — быстрая проверка без Unity: .meta у всех ассетов, нет ссылок на забытые файлы
+#  tests   — EditMode-тесты в Unity (GameCI)
+#  build   — билд под Windows: на каждый пуш в main (артефакт) и на тег vX.Y.Z (релиз на GitHub)
+# Для tests и build нужны секреты UNITY_LICENSE, UNITY_EMAIL, UNITY_PASSWORD — см. CONTRIBUTING.md.
+# Пока их нет, эти задачи пропускаются, а checks работает всегда.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UNITY_VERSION: 6000.6.5f1
+
+jobs:
+  checks:
+    name: Проверка проекта
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/ci/check_project.py
+
+  tests:
+    name: Тесты (EditMode)
+    needs: checks
+    runs-on: ubuntu-latest
+    env:
+      HAS_LICENSE: ${{ secrets.UNITY_LICENSE != '' }}
+    steps:
+      - if: env.HAS_LICENSE != 'true'
+        run: echo "::notice::Нет секрета UNITY_LICENSE — тесты в Unity пропущены (см. CONTRIBUTING.md)"
+      - if: env.HAS_LICENSE == 'true'
+        uses: actions/checkout@v4
+      - if: env.HAS_LICENSE == 'true'
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-test-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: Library-test-
+      - if: env.HAS_LICENSE == 'true'
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          unityVersion: ${{ env.UNITY_VERSION }}
+          testMode: editmode
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Результаты тестов
+
+  build:
+    name: Билд Windows
+    needs: tests
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      HAS_LICENSE: ${{ secrets.UNITY_LICENSE != '' }}
+    steps:
+      - if: env.HAS_LICENSE != 'true'
+        run: echo "::notice::Нет секрета UNITY_LICENSE — билд пропущен (см. CONTRIBUTING.md)"
+      - if: env.HAS_LICENSE == 'true'
+        uses: actions/checkout@v4
+      - if: env.HAS_LICENSE == 'true'
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-win-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: Library-win-
+      - if: env.HAS_LICENSE == 'true'
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          unityVersion: ${{ env.UNITY_VERSION }}
+          targetPlatform: StandaloneWindows64
+          buildName: BlackHeart
+      # архив распаковывается в папку BlackHeart/
+      - if: env.HAS_LICENSE == 'true'
+        run: |
+          mv build/StandaloneWindows64 BlackHeart
+          zip -qr BlackHeart_Windows.zip BlackHeart
+      - if: env.HAS_LICENSE == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: BlackHeart_Windows
+          path: BlackHeart_Windows.zip
+      - if: env.HAS_LICENSE == 'true' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: BlackHeart_Windows.zip
+          generate_release_notes: true
