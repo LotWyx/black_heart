@@ -11,8 +11,8 @@ namespace BlackHeart
 
     // Пасть (челюсти боссов Deltarune): вокруг сердца проступают две дуги клыков — верхняя и нижняя челюсть.
     // Пасть раскрывается (клыки отходят от сердца), дрожит и захлопывается: клыки разом летят в сердце,
-    // от уголков к середине. Синие клыки — с просветами рядом. Со средней сложности укуса два,
-    // второй повёрнут на 90°: челюсти слева и справа.
+    // от уголков к середине. Синие клыки — с просветами рядом. Укуса два (на высокой сложности — три),
+    // каждый следующий повёрнут на 90°: челюсти то сверху и снизу, то слева и справа.
     public class BeastJawsPattern : AttackPattern
     {
         public const string ID = "beast_jaws";
@@ -21,7 +21,7 @@ namespace BlackHeart
 
         public override IEnumerator Run(AttackContext ctx)
         {
-            int bites = ctx.Difficulty >= 0.6f ? 2 : 1;
+            int bites = ctx.Difficulty >= 1.2f ? 3 : 2;
             bool vertical = GameRandom.value < 0.5f;
             for (int b = 0; b < bites; b++, vertical = !vertical)
             {
@@ -38,12 +38,12 @@ namespace BlackHeart
             float half = Mathf.Abs(axis.y) > 0.5f ? r.height / 2f : r.width / 2f;
             float radius = Mathf.Min(3f, half - 1.4f);           // где проступает челюсть
             const float Open = 0.7f, OpenTime = 0.45f;            // насколько и как быстро раскрывается пасть
-            int perJaw = ctx.RampInt(4, 6, 0f, 1.4f);
+            int perJaw = ctx.RampInt(7, 10, 0f, 1.4f);
             float spread = 58f * Mathf.Deg2Rad;
-            launchAt = ctx.Ramp(1.8f, 1.15f, 0f, 1.5f);
-            float speed = ctx.Ramp(3.5f, 5f, 0f, 1.5f);
-            float purpleShare = ctx.Ramp(0f, 0.35f, 0.2f, 1.2f);
-            int blue = ctx.RampInt(1, 2, 0.3f, 1.4f);
+            launchAt = ctx.Ramp(1.35f, 0.85f, 0f, 1.5f);
+            float speed = ctx.Ramp(4.5f, 6.5f, 0f, 1.5f);
+            float purpleShare = ctx.Ramp(0.15f, 0.4f, 0f, 1.2f);
+            int blue = ctx.RampInt(1, 2, 0f, 1.4f);   // мало: каждый синий забирает ещё и соседей-просветы
 
             var fangs = new List<ProjectileHandle>();
             foreach (float side in new[] { 1f, -1f })            // верхняя и нижняя челюсть
@@ -57,9 +57,10 @@ namespace BlackHeart
                     float angle = Mathf.Lerp(-spread, spread, k);
                     Vector2 dir = MotionMath.Rotate(axis * side, angle);
                     Vector2 pos = ctx.Target + dir * radius;
-                    // захлопывается от уголков к середине — щелчок слышен и виден
+                    // захлопывается волной от уголков к середине за 0,35 с: клыков много, но к сердцу они
+                    // подходят по очереди и их можно резать один за другим
                     float order = Mathf.Abs(k - 0.5f) * 2f;
-                    var motion = new FacingPounce(new PounceMotion(pos, pos + dir * Open, OpenTime, launchAt + (1f - order) * 0.12f, ctx.Target, speed));
+                    var motion = new FacingPounce(new PounceMotion(pos, pos + dir * Open, OpenTime, launchAt + (1f - order) * 0.35f, ctx.Target, speed));
                     fangs.Add(new ProjectileHandle(ctx.SpawnFormation(types[i], motion, Fang)));
                 }
             }
@@ -67,20 +68,20 @@ namespace BlackHeart
         }
     }
 
-    // Когти (полосы костей Санса, копья Андайн): три параллельные полосы клыков одна за другой проносятся
+    // Когти (полосы костей Санса, копья Андайн): четыре (на высокой сложности пять) параллельные полосы клыков одна за другой проносятся
     // через рамку наискосок, будто зверь полоснул лапой. Каждая полоса проходит через сердце — разрубить
-    // нужно только клык на его пути, остальные пролетят мимо. Иногда на пути сердца — синий: его пропусти.
-    // С середины сложности удар двойной: вторая лапа бьёт под другим углом.
+    // нужно клыки на его пути (полоса плотная — часто их два), остальные пролетят мимо. Иногда на пути
+    // сердца синий: его пропусти. Лапа бьёт дважды (на высокой сложности — трижды), каждый раз под другим углом.
     public class BeastClawsPattern : AttackPattern
     {
         public const string ID = "beast_claws";
         public override string Id => ID;
         const string Fang = "Fang";
-        const float Spacing = 0.72f, Gap = 1.5f;
+        const float Spacing = 0.58f, Gap = 1.2f;   // шаг меньше радиуса попадания: на пути сердца часто два клыка
 
         public override IEnumerator Run(AttackContext ctx)
         {
-            int swipes = ctx.Difficulty >= 0.5f ? 2 : 1;
+            int swipes = ctx.Difficulty >= 1.2f ? 3 : 2;
             float angle = (45f + 90f * GameRandom.Range(0, 4) + GameRandom.Range(-15f, 15f)) * Mathf.Deg2Rad;
             for (int s = 0; s < swipes; s++)
             {
@@ -97,13 +98,14 @@ namespace BlackHeart
             Vector2 across = new Vector2(-dir.y, dir.x);
             float diag = new Vector2(r.width, r.height).magnitude;
             int half = Mathf.CeilToInt(diag / 2f / Spacing);
-            float speed = ctx.Ramp(3.2f, 4.6f, 0f, 1.5f);
+            float speed = ctx.Ramp(4f, 6f, 0f, 1.5f);
             float reach = diag / 2f + 1f;                         // полосы стартуют за рамкой — там их не видно
-            float purpleShare = ctx.Ramp(0f, 0.3f, 0.3f, 1.3f);
-            float blueOnPath = ctx.Ramp(0f, 0.3f, 0.3f, 1.4f);   // шанс, что на пути сердца синий
+            float purpleShare = ctx.Ramp(0.1f, 0.35f, 0f, 1.2f);
+            float blueOnPath = ctx.Ramp(0.15f, 0.35f, 0f, 1.4f);   // шанс, что на пути сердца синий
 
             var fangs = new List<ProjectileHandle>();
-            for (int line = 0; line < 3; line++)
+            int lines = ctx.Difficulty >= 1f ? 5 : 4;
+            for (int line = 0; line < lines; line++)
             {
                 // полоса сдвинута поперёк на долю шага: на пути сердца всегда ровно один клык, но не всегда центральный
                 float shift = GameRandom.Range(-0.35f, 0.35f) * Spacing;
@@ -122,7 +124,7 @@ namespace BlackHeart
                     fangs.Add(new ProjectileHandle(ctx.SpawnFormation(types[i], motion, Fang)));
                 }
             }
-            duration = (reach * 2f + 2f * Gap) / speed;
+            duration = (reach * 2f + (lines - 1) * Gap) / speed;
             return fangs;
         }
     }
@@ -137,11 +139,11 @@ namespace BlackHeart
         public override IEnumerator Run(AttackContext ctx)
         {
             Rect r = ctx.Box.Current;
-            int count = ctx.RampInt(3, 6, 0f, 1.5f);
-            float runSpeed = ctx.Ramp(3f, 5f, 0f, 1.5f);
-            float firstDash = ctx.Ramp(1.6f, 1.1f, 0f, 1.5f);
-            float step = ctx.Ramp(0.95f, 0.5f, 0f, 1.5f);         // между бросками
-            float dashSpeed = ctx.Ramp(4f, 6f, 0f, 1.5f);
+            int count = ctx.RampInt(6, 10, 0f, 1.5f);
+            float runSpeed = ctx.Ramp(4f, 6.5f, 0f, 1.5f);
+            float firstDash = ctx.Ramp(1.2f, 0.8f, 0f, 1.5f);
+            float step = ctx.Ramp(0.6f, 0.3f, 0f, 1.5f);          // между бросками
+            float dashSpeed = ctx.Ramp(5f, 7f, 0f, 1.5f);
             ctx.PlanTypes(count);
             float offset = GameRandom.value;
             var mice = new List<ProjectileHandle>();
@@ -166,7 +168,8 @@ namespace BlackHeart
 
     // Чеширская улыбка (лица Омеги Флауи и Азриэля): вокруг сердца по одному проступают глаза и ухмылка
     // во всю рамку. Потом улыбка «смеётся»: зубы от уголков к середине по очереди срываются в сердце,
-    // последними — глаза (пары фиолетовых). Синие зубы — с просветами.
+    // последними — глаза (пары фиолетовых). Синие зубы — с просветами. На высокой сложности следом
+    // проступает вторая улыбка — перевёрнутая.
     public class BeastGrinPattern : AttackPattern
     {
         public const string ID = "beast_grin";
@@ -175,15 +178,21 @@ namespace BlackHeart
 
         public override IEnumerator Run(AttackContext ctx)
         {
+            yield return Grin(ctx, false);
+            if (ctx.Difficulty >= 1f) yield return Grin(ctx, true);   // на высокой сложности — вторая, перевёрнутая
+        }
+
+        static IEnumerator Grin(AttackContext ctx, bool flipped)
+        {
             Rect r = ctx.Box.Current;
-            float rx = Mathf.Min(5f, r.width / 2f - 1f), ry = Mathf.Min(3.2f, r.height / 2f - 0.9f);
-            int teeth = ctx.RampInt(7, 11, 0f, 1.5f);
-            float hold = ctx.Ramp(1.2f, 0.8f, 0f, 1.5f);          // сколько улыбка висит целиком
-            float step = ctx.Ramp(0.22f, 0.12f, 0f, 1.5f);        // между бросками зубов
-            float speed = ctx.Ramp(3.2f, 4.6f, 0f, 1.5f);
+            float rx = Mathf.Min(5f, r.width / 2f - 1f), ry = Mathf.Min(3.2f, r.height / 2f - 0.9f) * (flipped ? -1f : 1f);
+            int teeth = ctx.RampInt(12, 17, 0f, 1.5f);
+            float hold = ctx.Ramp(0.9f, 0.55f, 0f, 1.5f);         // сколько улыбка висит целиком
+            float step = ctx.Ramp(0.14f, 0.07f, 0f, 1.5f);        // между бросками зубов
+            float speed = ctx.Ramp(4f, 6f, 0f, 1.5f);
             const float Appear = 0.07f;
 
-            var types = ctx.Types(teeth, ctx.RampInt(1, 2, 0.3f, 1.4f), ctx.Ramp(0f, 0.3f, 0.3f, 1.3f));
+            var types = ctx.Types(teeth, ctx.RampInt(1, 3, 0f, 1.4f), ctx.Ramp(0.1f, 0.35f, 0f, 1.2f));
             var skip = AttackContext.BlueGaps(types, false);
             var points = new List<(Vector2 pos, ProjectileType type, float order, string variant)>();
             for (int i = 0; i < teeth; i++)
@@ -223,7 +232,8 @@ namespace BlackHeart
 
     // Прыжки — обычная атака Ненасытного: кошачьи головы подкрадываются из-за края экрана, замирают
     // в засаде на расстоянии прыжка, приседают (дрожат) и прыгают в сердце. Синие следы лап — рядом
-    // с другими пулями. С ростом сложности засады чаще, а прыжок раньше.
+    // с другими пулями. Иногда двое прыгают разом с противоположных сторон. С ростом сложности засады
+    // чаще, прыжок раньше, а сдвоенных прыжков больше.
     public class BeastStandardPattern : AttackPattern
     {
         public const string ID = "beast_std";
@@ -232,23 +242,38 @@ namespace BlackHeart
         public override IEnumerator Run(AttackContext ctx)
         {
             const float duration = 4f;
-            float interval = ctx.Ramp(1.05f, 0.45f, 0f, 1.5f);
-            float crouch = ctx.Ramp(0.95f, 0.55f, 0f, 1.5f);
-            float dashSpeed = ctx.Ramp(4f, 6f, 0f, 1.5f);
+            float interval = ctx.Ramp(0.6f, 0.3f, 0f, 1.5f);
+            float crouch = ctx.Ramp(0.7f, 0.4f, 0f, 1.5f);
+            float dashSpeed = ctx.Ramp(5f, 7f, 0f, 1.5f);
+            float pairChance = ctx.Ramp(0.2f, 0.6f, 0f, 1.5f);   // двое прыгают разом с противоположных сторон
             int count = Mathf.Max(1, Mathf.FloorToInt(duration / interval));
             ctx.PlanTypes(count);
             for (int i = 0; i < count; i++)
             {
                 var type = ctx.NextType();
                 Vector2 dir = ctx.DirectionFor(type);
-                Vector2 start = ctx.PointOffScreen(dir);
-                float perch = Mathf.Min(ctx.Ramp(3.6f, 3.0f), ctx.Box.DistanceToEdge(ctx.Target, dir) - 0.6f);
-                Vector2 stand = ctx.Target + dir * perch;
-                float distance = Vector2.Distance(start, stand);
-                float approach = distance / ctx.PickSpeed(3f, 6f, distance);
-                ctx.Spawn(type, new PounceMotion(start, stand, approach, approach + crouch, ctx.Target, dashSpeed));
+                float launch = Ambush(ctx, type, dir, crouch, dashSpeed, -1f);
+                // сдвоенный прыжок: второй — с противоположной стороны и в тот же миг
+                if (i + 1 < count && GameRandom.value < pairChance)
+                {
+                    i++;
+                    Ambush(ctx, ctx.NextType(), MotionMath.Rotate(-dir, GameRandom.Range(-0.4f, 0.4f)), crouch, dashSpeed, launch);
+                }
                 yield return new WaitForSeconds(interval);
             }
+        }
+
+        // Засада: подкрасться, присесть, прыгнуть. launchAt < 0 — сразу после приседания; иначе — к этому моменту
+        static float Ambush(AttackContext ctx, ProjectileType type, Vector2 dir, float crouch, float dashSpeed, float launchAt)
+        {
+            Vector2 start = ctx.PointOffScreen(dir);
+            float perch = Mathf.Min(ctx.Ramp(3.4f, 2.8f), ctx.Box.DistanceToEdge(ctx.Target, dir) - 0.6f);
+            Vector2 stand = ctx.Target + dir * perch;
+            float distance = Vector2.Distance(start, stand);
+            float approach = distance / ctx.PickSpeed(3.5f, 7f, distance);
+            float launch = launchAt < 0f ? approach + crouch : Mathf.Max(launchAt, approach + 0.2f);
+            ctx.Spawn(type, new PounceMotion(start, stand, approach, launch, ctx.Target, dashSpeed));
+            return launch;
         }
     }
 }
