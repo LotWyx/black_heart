@@ -156,11 +156,20 @@ namespace BlackHeart
 
         void Update()
         {
+            SaveSystem.Tick();
             stateTime += Time.deltaTime;
             // с экрана проигрыша в меню — через затемнение (сам экран проигрыша появляется резко)
             if (CurrentState == State.GameOver && stateTime > 3f && Slicer.PressedThisFrame)
                 Fader.Transition(ShowMenu);
         }
+
+        // Отложенные сохранения — на диск сразу: телефон может выгрузить свёрнутую игру без предупреждения
+        void OnApplicationPause(bool paused)
+        {
+            if (paused) SaveSystem.Flush();
+        }
+
+        void OnApplicationQuit() => SaveSystem.Flush();
 
         // Пауза: время стоит, бой и обучение не реагируют на ввод
         public void SetPaused(bool paused)
@@ -171,8 +180,10 @@ namespace BlackHeart
 
         void SetPausedInternal(bool paused)
         {
+            bool changed = Paused != paused;
             Paused = paused;
             Time.timeScale = paused ? 0f : 1f;
+            if (changed) GameEvents.RaisePauseChanged(paused);
         }
 
         // Выход из боя в главное меню (рекорд засчитывается)
@@ -193,7 +204,6 @@ namespace BlackHeart
             Battle.DespawnEnemy();
             Box.SetVisible(false);
             Background.SetVisible(false);
-            Score.CommitBest();
 
             yield return new WaitForSeconds(0.6f);
             Player.Crack();
@@ -201,6 +211,9 @@ namespace BlackHeart
             Player.Shatter();
             yield return new WaitForSeconds(1.4f);
 
+            // Рекорд — по окончательному счёту, тому же, что покажет экран проигрыша. Смерть начинается
+            // посреди обработки удара, и очки этого же удара (штраф за синюю) начисляются уже после неё.
+            Score.CommitBest();
             CurrentState = State.GameOver;
             stateTime = 0;
             GameEvents.RaiseGameOver(Score.Score);

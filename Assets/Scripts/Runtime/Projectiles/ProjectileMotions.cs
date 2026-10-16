@@ -62,10 +62,10 @@ namespace BlackHeart
             control = (start + target) / 2f + new Vector2(-d.y, d.x).normalized * arc;
             duration = d.magnitude * 1.15f / speed;
             this.amplitude = amplitude;
-            f1 = Random.Range(3f, 6f);
-            f2 = Random.Range(6f, 10f);
-            p1 = Random.Range(0f, 6.3f);
-            p2 = Random.Range(0f, 6.3f);
+            f1 = GameRandom.Range(3f, 6f);
+            f2 = GameRandom.Range(6f, 10f);
+            p1 = GameRandom.Range(0f, 6.3f);
+            p2 = GameRandom.Range(0f, 6.3f);
         }
 
         public Vector2 Evaluate(float t)

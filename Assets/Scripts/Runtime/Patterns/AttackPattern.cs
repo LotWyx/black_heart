@@ -56,7 +56,7 @@ namespace BlackHeart
 
             for (int i = list.Count - 1; i > 0; i--)
             {
-                int j = Random.Range(0, i + 1);
+                int j = GameRandom.Range(0, i + 1);
                 (list[i], list[j]) = (list[j], list[i]);
             }
             foreach (var t in list) deck.Enqueue(t);
@@ -65,7 +65,7 @@ namespace BlackHeart
         public ProjectileType NextType() => deck.Count > 0 ? deck.Dequeue() : ProjectileType.White;
 
         // Для колец: синее кольцо целиком синее и не смешивается с остальными
-        public bool RollBlueRing() => Random.value < SpecialShare * Enemy.BlueRatio;
+        public bool RollBlueRing() => GameRandom.value < SpecialShare * Enemy.BlueRatio;
 
         // ---------- темп ----------
 
@@ -89,11 +89,11 @@ namespace BlackHeart
         {
             if (Projectiles.Count >= FieldCap) return false;
             var b = GameBalance.Current;
-            if (Tempo == AttackTempo.Dense && type == ProjectileType.White && Random.value < b.denseWhiteToPurple) type = ProjectileType.Purple;
+            if (Tempo == AttackTempo.Dense && type == ProjectileType.White && GameRandom.value < b.denseWhiteToPurple) type = ProjectileType.Purple;
             if (Tempo == AttackTempo.Fast)
             {
-                if (type == ProjectileType.Blue && Random.value < b.fastBlueDrop) return false;
-                if (type == ProjectileType.Purple && Random.value < b.fastPurpleToWhite) type = ProjectileType.White;
+                if (type == ProjectileType.Blue && GameRandom.value < b.fastBlueDrop) return false;
+                if (type == ProjectileType.Purple && GameRandom.value < b.fastPurpleToWhite) type = ProjectileType.White;
             }
             return true;
         }
@@ -134,7 +134,7 @@ namespace BlackHeart
             while (list.Count < count) list.Add(ProjectileType.White);
             for (int i = list.Count - 1; i > 0; i--)
             {
-                int j = Random.Range(0, i + 1);
+                int j = GameRandom.Range(0, i + 1);
                 (list[i], list[j]) = (list[j], list[i]);
             }
             return list;
@@ -142,6 +142,8 @@ namespace BlackHeart
 
         // В строю (кольцо или линия, по порядку) рядом с синей не ставим других пуль: соседи синих пропускаются.
         // Иначе синюю невозможно не задеть, разрезая соседнюю.
+        static readonly int[] Neighbours = { -1, 1 };
+
         public static bool[] BlueGaps(IList<ProjectileType> types, bool cyclic)
         {
             int n = types.Count;
@@ -149,7 +151,7 @@ namespace BlackHeart
             for (int i = 0; i < n; i++)
             {
                 if (types[i] != ProjectileType.Blue) continue;
-                foreach (int d in new[] { -1, 1 })
+                foreach (int d in Neighbours)
                 {
                     int j = i + d;
                     if (cyclic) j = (j + n) % n;
@@ -161,7 +163,7 @@ namespace BlackHeart
 
         // Особый тип по соотношению врага (фиолетовый/синий) с заданной долей особых
         public ProjectileType RollType(float specialShare) =>
-            Random.value < specialShare ? Enemy.PickSpecialType() : ProjectileType.White;
+            GameRandom.value < specialShare ? Enemy.PickSpecialType() : ProjectileType.White;
 
         public static int AliveCount(List<ProjectileHandle> list)
         {
@@ -189,23 +191,25 @@ namespace BlackHeart
         public float PickSpeed(float slow, float fast, float distance)
         {
             float bias = Mathf.Lerp(2.5f, 0.6f, Mathf.Clamp01(Difficulty / 1.5f));   // >1 — чаще медленные
-            float speed = Mathf.Lerp(slow, fast, Mathf.Pow(Random.value, bias));
+            float speed = Mathf.Lerp(slow, fast, Mathf.Pow(GameRandom.value, bias));
             return Mathf.Min(speed, distance / MinReactionTime);
         }
 
         public Vector2 RandomDirection()
         {
-            float a = Random.Range(0f, Mathf.PI * 2f);
+            float a = GameRandom.Range(0f, Mathf.PI * 2f);
             return new Vector2(Mathf.Cos(a), Mathf.Sin(a));
         }
 
         // Направление прилёта. Синяя летит рядом с какой-нибудь не синей пулей (в BlueNear градусах от неё):
         // её нужно обойти разрезом, а не просто не трогать где-то в стороне. Остальные — со случайной стороны.
         const float BlueNearMin = 14f, BlueNearMax = 26f;
+        static readonly List<Vector2> directionBuffer = new List<Vector2>();
         public Vector2 DirectionFor(ProjectileType type)
         {
             if (type != ProjectileType.Blue) return RandomDirection();
-            var others = new List<Vector2>();
+            var others = directionBuffer;   // общий буфер: синие пули появляются часто, не мусорим списками
+            others.Clear();
             foreach (var p in Projectiles.Active)
             {
                 if (p == null || !p.Alive || p.Type == ProjectileType.Blue) continue;
@@ -213,9 +217,9 @@ namespace BlackHeart
                 if (rel.sqrMagnitude > 1f) others.Add(rel);
             }
             if (others.Count == 0) return RandomDirection();
-            Vector2 near = others[Random.Range(0, others.Count)];
-            float side = Random.value < 0.5f ? 1f : -1f;
-            return Dir(Mathf.Atan2(near.y, near.x) + side * Random.Range(BlueNearMin, BlueNearMax) * Mathf.Deg2Rad);
+            Vector2 near = others[GameRandom.Range(0, others.Count)];
+            float side = GameRandom.value < 0.5f ? 1f : -1f;
+            return Dir(Mathf.Atan2(near.y, near.x) + side * GameRandom.Range(BlueNearMin, BlueNearMax) * Mathf.Deg2Rad);
         }
 
         // Скорость сближения спирали: пуля стартует за экраном, но путь от края рамки до сердца занимает duration
@@ -241,8 +245,8 @@ namespace BlackHeart
             float bestDist = -1f;
             for (int i = 0; i < 40; i++)
             {
-                var p = new Vector2(Random.Range(r.xMin + edgeMargin, r.xMax - edgeMargin),
-                                    Random.Range(r.yMin + edgeMargin, r.yMax - edgeMargin));
+                var p = new Vector2(GameRandom.Range(r.xMin + edgeMargin, r.xMax - edgeMargin),
+                                    GameRandom.Range(r.yMin + edgeMargin, r.yMax - edgeMargin));
                 float d = Vector2.Distance(p, Target);
                 if (d >= minDistance) return p;
                 if (d > bestDist) { bestDist = d; best = p; }

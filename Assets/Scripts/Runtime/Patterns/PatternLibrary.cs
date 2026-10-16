@@ -25,17 +25,33 @@ namespace BlackHeart
             [PendulumPattern.ID] = () => new PendulumPattern(),
             [FlyPattern.ID] = () => new FlyPattern(),
             [GhostStandardPattern.ID] = () => new GhostStandardPattern(),
+            // Ненасытный
+            [BeastJawsPattern.ID] = () => new BeastJawsPattern(),
+            [BeastClawsPattern.ID] = () => new BeastClawsPattern(),
+            [BeastMicePattern.ID] = () => new BeastMicePattern(),
+            [BeastGrinPattern.ID] = () => new BeastGrinPattern(),
+            [BeastStandardPattern.ID] = () => new BeastStandardPattern(),
         };
 
         public static IEnumerable<string> AllIds => registry.Keys;
 
         public static void Register(string id, Func<AttackPattern> factory) => registry[id] = factory;
 
+        public static bool Exists(string id) => id != null && registry.ContainsKey(id);
+
+        static readonly HashSet<string> reported = new HashSet<string>();
+
+        // Опечатка в id ломает набор атак врага, поэтому это ошибка, а не предупреждение. Чтобы бой не встал,
+        // вместо неизвестной атаки летит прямая; в лог пишется один раз на id. Проверка ассетов — EnemyDefinition.OnValidate.
         public static AttackPattern Create(string id)
         {
-            if (id != null && registry.TryGetValue(id, out var factory)) return factory();
-            Debug.LogWarning($"[PatternLibrary] Неизвестный паттерн '{id}', используется '{StraightPattern.ID}'.");
+            if (Exists(id)) return registry[id]();
+            if (reported.Add(id ?? ""))
+                Debug.LogError($"[PatternLibrary] Неизвестный паттерн '{id}', вместо него — '{StraightPattern.ID}'. Доступные: {string.Join(", ", registry.Keys)}");
             return new StraightPattern();
         }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => reported.Clear();
     }
 }

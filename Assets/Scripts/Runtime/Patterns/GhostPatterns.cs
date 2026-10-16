@@ -19,12 +19,12 @@ namespace BlackHeart
             int arms = ctx.Difficulty >= 1f ? 2 : 1;
             int count = ctx.RampInt(18f, 30f, 0f, 1.5f);
             float dt = ctx.Ramp(0.17f, 0.13f, 0f, 1.5f);
-            float step = 0.42f * (Random.value < 0.5f ? 1 : -1);
+            float step = 0.42f * (GameRandom.value < 0.5f ? 1 : -1);
             float duration = ctx.Ramp(3.8f, 2.9f, 0f, 1.5f);
             float spin = 0.5f * Mathf.Sign(step);
             bool holes = ctx.Difficulty < 0.6f;
             float special = Mathf.Min(0.5f, ctx.Ramp(0.15f, 0.5f, 0f, 1.5f));
-            float a0 = Random.Range(0f, Mathf.PI * 2f);
+            float a0 = GameRandom.Range(0f, Mathf.PI * 2f);
             // типы по рукаву заранее: соседи синих в рукаве пропускаются
             var types = new List<ProjectileType>();
             for (int i = 0; i < count; i++) types.Add(ctx.RollType(special));
@@ -59,14 +59,14 @@ namespace BlackHeart
         public override IEnumerator Run(AttackContext ctx)
         {
             Rect r = ctx.Box.Current;
-            bool topLeft = Random.value < 0.5f;
+            bool topLeft = GameRandom.value < 0.5f;
             Vector2 dir = topLeft ? Vector2.right : Vector2.left;
             Vector2 start = topLeft ? new Vector2(r.xMin - 0.5f, r.yMax - 1.3f) : new Vector2(r.xMax + 0.5f, r.yMin + 1.3f);
             float speed = ctx.Ramp(2.5f, 5.5f, 0f, 1.5f);
             float travel = r.width - 0.2f;               // голова доходит до противоположной стенки
             float headTime = travel / speed;
             int count = Mathf.Min(ctx.RampInt(10f, 16f, 0f, 1.5f), Mathf.FloorToInt(headTime / SpawnStep));
-            var types = ctx.Types(count, Random.Range(3, 6), ctx.Ramp(0f, 0.3f, 0.2f, 1.4f));
+            var types = ctx.Types(count, GameRandom.Range(3, 6), ctx.Ramp(0f, 0.3f, 0.2f, 1.4f));
 
             var skip = AttackContext.BlueGaps(types, false);   // в волне по бокам от синих — пусто
             for (int i = 0; i < count; i++)
@@ -102,8 +102,8 @@ namespace BlackHeart
             {
                 // весь залп — с одной стороны: синий качается среди остальных, а не где-то напротив
                 Vector2[] sides = { Vector2.up, Vector2.down, Vector2.left, Vector2.right };
-                Vector2 side = sides[Random.Range(0, sides.Length)];
-                int count = ctx.Difficulty < 0.5f ? 1 : Random.Range(2, 2 + 1 + ctx.RampInt(0f, 2f, 0.5f, 1.5f));
+                Vector2 side = sides[GameRandom.Range(0, sides.Length)];
+                int count = ctx.Difficulty < 0.5f ? 1 : GameRandom.Range(2, 2 + 1 + ctx.RampInt(0f, 2f, 0.5f, 1.5f));
                 var types = ctx.Types(count, count >= 2 ? 1 : 0, ctx.Ramp(0.1f, 0.35f));
                 types.Sort((a, b) => (a == ProjectileType.Blue).CompareTo(b == ProjectileType.Blue));   // синий — последним
                 for (int i = 0; i < count; i++)
@@ -118,13 +118,13 @@ namespace BlackHeart
         public static void SpawnOne(AttackContext ctx, ProjectileType type, Vector2? from = null)
         {
             Vector2[] sides = { Vector2.up, Vector2.down, Vector2.left, Vector2.right };
-            Vector2 dir = from ?? sides[Random.Range(0, sides.Length)];
+            Vector2 dir = from ?? sides[GameRandom.Range(0, sides.Length)];
             Vector2 start = ctx.PointOffScreen(dir);
             float amplitude = ctx.Ramp(1.0f, 3.0f, 0f, 0.8f);
             float frequency = ctx.Ramp(2.0f, 5.0f, 0.8f, 1.8f);
             // по вертикали размах ограничен шириной рамки, по горизонтали — её высотой
             if (dir.x != 0f) amplitude = Mathf.Min(amplitude, ctx.Box.Current.height / 2f - 0.8f);
-            ctx.Spawn(type, new PendulumMotion(start, ctx.Target, 1.3f, amplitude, frequency, Random.Range(0f, Mathf.PI * 2f)), Spirit);
+            ctx.Spawn(type, new PendulumMotion(start, ctx.Target, 1.3f, amplitude, frequency, GameRandom.Range(0f, Mathf.PI * 2f)), Spirit);
         }
     }
 
@@ -167,15 +167,15 @@ namespace BlackHeart
             float special = Mathf.Min(0.5f, ctx.Ramp(0.2f, 0.4f));
             for (float t = 0f; t < duration; t += interval)
             {
-                float roll = Random.value;
+                float roll = GameRandom.value;
                 if (roll < 0.35f)
                 {
                     // Короткий рукав спирали: белый, изредка с одной синей внутри (её соседи пропущены).
                     // Фиолетовых в рукаве нет: целиком фиолетовый рукав со всех сторон был слишком быстрым и плотным.
                     int n = ctx.RampInt(5f, 9f);
-                    float a0 = Random.Range(0f, Mathf.PI * 2f), step = 0.45f * (Random.value < 0.5f ? 1 : -1);
+                    float a0 = GameRandom.Range(0f, Mathf.PI * 2f), step = 0.45f * (GameRandom.value < 0.5f ? 1 : -1);
                     float dur = ctx.Ramp(3.8f, 3f);
-                    var armTypes = ctx.Types(n, Random.value < special ? 1 : 0, 0f);
+                    var armTypes = ctx.Types(n, GameRandom.value < special ? 1 : 0, 0f);
                     var skip = AttackContext.BlueGaps(armTypes, false);
                     for (int i = 0; i < n; i++)
                     {
@@ -191,7 +191,7 @@ namespace BlackHeart
                 else if (roll < 0.65f) PendulumPattern.SpawnOne(ctx, ctx.RollType(special));
                 else
                 {
-                    int n = Random.value < 0.5f ? 1 : 2;
+                    int n = GameRandom.value < 0.5f ? 1 : 2;
                     for (int i = 0; i < n; i++) FlyPattern.SpawnOne(ctx, ctx.RollType(special));
                 }
                 yield return new WaitForSeconds(interval);

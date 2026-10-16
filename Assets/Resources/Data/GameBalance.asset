@@ -16,6 +16,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9b4e7d3ee7ad7444290b56b93a57f221, type: 2}
   - {fileID: 11400000, guid: d5373c0907bf61b499ab155e89c61469, type: 2}
   - {fileID: 11400000, guid: ec74b8b72887538488185add69859de8, type: 2}
+  - {fileID: 11400000, guid: 13507c4dee324ace194b903adac1e325, type: 2}
   tutorialBoss: {fileID: 11400000, guid: 378336dc89d496148adfe526da9c597e, type: 2}
   playerMaxHp: 10
   playerHitRadius: 0.35

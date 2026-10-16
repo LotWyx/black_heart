@@ -51,7 +51,7 @@ namespace BlackHeart
             yield return new WaitForSeconds(HoldTime + ShrinkTime);
 
             int count = types.Count;
-            float offset = Random.Range(0f, Mathf.PI * 2f);
+            float offset = GameRandom.Range(0f, Mathf.PI * 2f);
             var skip = AttackContext.BlueGaps(types, true);   // по бокам от синей в кольце — пусто
             for (int i = 0; i < count; i++)
             {

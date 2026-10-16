@@ -36,16 +36,16 @@ namespace BlackHeart
             Vector2 dir = ctx.RandomDirection();
             Vector2 start = ctx.PointOffScreen(dir, 2.4f);   // с запасом на спутники
             float speed = ctx.Ramp(1.7f, 2.2f, 0f, 1.5f);
-            float arc = Random.Range(1.2f, 2.5f) * (Random.value < 0.5f ? 1 : -1);
+            float arc = GameRandom.Range(1.2f, 2.5f) * (GameRandom.value < 0.5f ? 1 : -1);
             var center = new DrunkMotion(start, ctx.Target, speed, arc, 0.6f);
             ctx.Spawn(ProjectileType.Blue, center);
 
             float purpleShare = ctx.Ramp(0.1f, 0.4f, 0f, 1.5f);
-            float spin = 2.4f * (Random.value < 0.5f ? 1 : -1);
-            float a0 = Random.Range(0f, Mathf.PI * 2f);
+            float spin = 2.4f * (GameRandom.value < 0.5f ? 1 : -1);
+            float a0 = GameRandom.Range(0f, Mathf.PI * 2f);
             for (int i = 0; i < 4; i++)
             {
-                var type = Random.value < purpleShare ? ProjectileType.Purple : ProjectileType.White;
+                var type = GameRandom.value < purpleShare ? ProjectileType.Purple : ProjectileType.White;
                 ctx.Spawn(type, new OrbitMotion(center, ctx.Target, 1.3f, a0 + i * Mathf.PI / 2f, spin));
             }
         }
@@ -64,7 +64,7 @@ namespace BlackHeart
             Rect r = ctx.Box.Current;
             float hw = Mathf.Min(5.5f, r.width / 2f - 1.2f), hh = Mathf.Min(3.1f, r.height / 2f - 0.6f);
             float shrinkTime = ctx.Ramp(6f, 5f, 0f, 1.5f);
-            float spin = ctx.Ramp(0.3f, 1.3f, 0f, 1.6f) * (Random.value < 0.5f ? 1 : -1);
+            float spin = ctx.Ramp(0.3f, 1.3f, 0f, 1.6f) * (GameRandom.value < 0.5f ? 1 : -1);
 
             // точки по контуру прямоугольника с равным шагом
             var points = new List<Vector2>();
@@ -75,7 +75,7 @@ namespace BlackHeart
                 int steps = Mathf.Max(1, Mathf.RoundToInt(Vector2.Distance(a, b) / Spacing));
                 for (int j = 0; j < steps; j++) points.Add(Vector2.Lerp(a, b, (float)j / steps));
             }
-            var types = ctx.Types(points.Count, Random.Range(2, 3 + ctx.RampInt(0f, 1f, 0.5f, 1.2f)), 0f);
+            var types = ctx.Types(points.Count, GameRandom.Range(2, 3 + ctx.RampInt(0f, 1f, 0.5f, 1.2f)), 0f);
             var skip = AttackContext.BlueGaps(types, true);   // по бокам от синих в контуре — просветы
             // Контур сжимается не весь разом, а «закручиваясь»: каждая следующая точка по кругу чуть медленнее.
             // Иначе все пули врезались бы в сердце в один момент. Синие отстают сильнее всех.
@@ -104,7 +104,7 @@ namespace BlackHeart
 
             for (float t = 0f; t < duration; t += interval)
             {
-                float roll = Random.value;
+                float roll = GameRandom.value;
                 if (roll < fiveChance && t - lastFive >= 0.5f)
                 {
                     FiveEye.Spawn(ctx);
@@ -113,10 +113,10 @@ namespace BlackHeart
                 else if (roll < fiveChance + (1f - fiveChance) * 0.5f)
                 {
                     // 1–3 глаза по спирали с соседних углов
-                    int n = Random.Range(1, 4);
+                    int n = GameRandom.Range(1, 4);
                     var groupType = ctx.RollType(special);   // группа одного цвета: синие не летят вплотную к белым
-                    float a0 = Random.Range(0f, Mathf.PI * 2f);
-                    float spin = ctx.Ramp(0.9f, 1.5f) * (Random.value < 0.5f ? 1 : -1);
+                    float a0 = GameRandom.Range(0f, Mathf.PI * 2f);
+                    float spin = ctx.Ramp(0.9f, 1.5f) * (GameRandom.value < 0.5f ? 1 : -1);
                     float dur = ctx.Ramp(4.5f, 3.4f, 0f, 1.5f);
                     for (int i = 0; i < n; i++)
                     {
@@ -132,7 +132,7 @@ namespace BlackHeart
                     float distance = ctx.Box.DistanceToEdge(ctx.Target, dir) * 1.15f;
                     float speed = ctx.PickSpeed(1.6f, 3f, distance);
                     ctx.Spawn(type, new DrunkMotion(ctx.PointOffScreen(dir), ctx.Target, speed,
-                        Random.Range(1.5f, 3f) * (Random.value < 0.5f ? 1 : -1), ctx.Ramp(0.5f, 0.8f)));
+                        GameRandom.Range(1.5f, 3f) * (GameRandom.value < 0.5f ? 1 : -1), ctx.Ramp(0.5f, 0.8f)));
                 }
                 yield return new WaitForSeconds(interval);
             }

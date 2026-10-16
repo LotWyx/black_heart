@@ -11,6 +11,7 @@ namespace BlackHeart
         public bool IsFragment { get; private set; }     // осколок фиолетовой пули
         public float Radius { get; private set; } = 0.45f;   // тело пули ~15 px (кадр 17x17 вместе с ореолом)
         public Color Color => ProjectileTypes.ColorOf(Type);
+        string skin;
         public Vector2 Position => transform.position;
         // Пуля группы (стена, клетка, волна, круг) видна только внутри рамки; одиночная прилетает
         // из-за края экрана и видна везде. Разрезать любую пулю можно только внутри рамки.
@@ -65,8 +66,9 @@ namespace BlackHeart
         // Задаётся атакой (плотные атаки высокой сложности медленные, быстрые — разреженные), осколки наследуют.
         public float Pace { get; set; } = 1f;
 
+        // skin — спрайт врага, в стиле которого рисуется пуля (череп, глаз, призрак); null — обычная пуля
         public void Init(ProjectileType type, IProjectileMotion motion, float startTime, bool fragment,
-            string variant = null, bool formation = false)
+            string variant = null, bool formation = false, string skin = null)
         {
             Pace = 1f;
             SpawnId = ++nextSpawnId;
@@ -81,8 +83,8 @@ namespace BlackHeart
             lengthwise = variant == "Bone";
             dead = spinning = rushing = enteredFrame = flipHalf = false;
             offset = Vector2.zero;
-            var enemy = GameManager.I.Battle.CurrentEnemy;
-            look = ProjectileLook.For(type, enemy != null ? enemy.Definition.spriteId : null, variant, fragment);
+            this.skin = skin;
+            look = ProjectileLook.For(type, skin, variant, fragment);
 
             // Первый кадр — белая вспышка появления, дальше покадровое вращение
             anim.Stop();
@@ -138,6 +140,7 @@ namespace BlackHeart
                 return;
             }
 
+            Vector2 before = Position;
             time += NearHeartStep(gm, Time.deltaTime * Pace * QueueFactor(gm));
             transform.position = Displaced(motion.Evaluate(time));
             Orient();
@@ -157,7 +160,9 @@ namespace BlackHeart
                 }
             }
 
-            if (Vector2.Distance(Position, heart.Position) < heart.HitRadius + Radius * 0.6f)
+            // Попадание — по всему пути за кадр, а не по конечной точке: при просадке FPS быстрая пуля
+            // не «перепрыгнет» сердце
+            if (Geometry.DistancePointSegment(heart.Position, before, Position) < heart.HitRadius + Radius * 0.6f)
                 HitPlayer();
             else if (FarOffScreen(gm))
                 Kill();
@@ -250,8 +255,9 @@ namespace BlackHeart
 
             if (Type == ProjectileType.Blue)
             {
-                gm.Player.TakeDamage(1);
+                // сначала штраф, потом урон: последний удар запускает смерть, и итоговый счёт должен уже учитывать −25
                 gm.Score.Add(gm.Score.blueBulletPenalty, Position);
+                gm.Player.TakeDamage(1);
             }
             else
             {
@@ -273,10 +279,10 @@ namespace BlackHeart
             Vector2 side = new Vector2(-dir.y, dir.x) * (spriteLength * FragmentGap / 2f);
 
             var manager = GameManager.I.Projectiles;
-            foreach (var s in new[] { side, -side })
+            for (int k = 0; k < 2; k++)
             {
-                var half = manager.Spawn(ProjectileType.Purple, motion, time, true, variant, Formation);
-                half.Shift(offset + s);
+                var half = manager.Spawn(ProjectileType.Purple, motion, time, true, variant, Formation, skin);
+                half.Shift(offset + (k == 0 ? side : -side));
                 half.Pace = Pace;
             }
 

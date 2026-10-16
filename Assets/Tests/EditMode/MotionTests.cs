@@ -14,6 +14,7 @@ namespace BlackHeart.Tests
         public void ZigzagDartNeverTouchesHeartWhileRoaming()
         {
             Random.InitState(12345);
+            GameRandom.Init(12345);   // траектории берут случайность игровой логики из GameRandom
             Vector2 heart = Box.center;
             for (int run = 0; run < 200; run++)
             {
@@ -29,6 +30,7 @@ namespace BlackHeart.Tests
         public void ZigzagDartHeadStartCountsFromEnteringTheBox()
         {
             Random.InitState(7);
+            GameRandom.Init(7);   // траектории берут случайность игровой логики из GameRandom
             Vector2 heart = Box.center;
             const float headStart = 3f;
             var m = new ZigzagDartMotion(heart + Vector2.left * 14f, Box, heart, headStart, 16f, 12f, 7f);
@@ -46,6 +48,7 @@ namespace BlackHeart.Tests
         public void ZigzagDartFinallyReachesHeart()
         {
             Random.InitState(99);
+            GameRandom.Init(99);   // траектории берут случайность игровой логики из GameRandom
             Vector2 heart = Box.center;
             var m = new ZigzagDartMotion(heart + Vector2.up * 12f, Box, heart, 2.5f, 16f, 12f, 7f);
             float best = float.MaxValue;
