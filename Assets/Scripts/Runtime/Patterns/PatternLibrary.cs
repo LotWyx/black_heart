@@ -25,6 +25,12 @@ namespace BlackHeart
             [PendulumPattern.ID] = () => new PendulumPattern(),
             [FlyPattern.ID] = () => new FlyPattern(),
             [GhostStandardPattern.ID] = () => new GhostStandardPattern(),
+            // Ненасытный
+            [BeastJawsPattern.ID] = () => new BeastJawsPattern(),
+            [BeastClawsPattern.ID] = () => new BeastClawsPattern(),
+            [BeastMicePattern.ID] = () => new BeastMicePattern(),
+            [BeastGrinPattern.ID] = () => new BeastGrinPattern(),
+            [BeastStandardPattern.ID] = () => new BeastStandardPattern(),
         };
 
         public static IEnumerable<string> AllIds => registry.Keys;

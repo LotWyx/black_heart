@@ -36,6 +36,7 @@ namespace BlackHeart
         public const string EnemyGhost = "Enemies/Ghost";
         public const string EnemyEye = "Enemies/Eye";
         public const string EnemySkull = "Enemies/Skull";
+        public const string EnemyBeast = "Enemies/Beast";
         public const string EnemyMoonface = "Enemies/Moonface";   // босс обучения
 
         // Подсказки обучения
