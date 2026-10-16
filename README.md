@@ -7,7 +7,7 @@
 Защити своё сердце от слуг Луноликого в духе *Undertale* и *Rhythm Doctor*.
 
 [![Release](https://img.shields.io/github/v/release/LotWyx/black_heart?label=%D1%80%D0%B5%D0%BB%D0%B8%D0%B7&color=e82424&style=for-the-badge)](https://github.com/LotWyx/black_heart/releases/latest)
-[![Platform](https://img.shields.io/badge/Windows-x64-1f1a26?style=for-the-badge&logo=windows)](https://github.com/LotWyx/black_heart/releases/latest)
+[![Platform](https://img.shields.io/badge/Windows%20%C2%B7%20Android-1f1a26?style=for-the-badge)](https://github.com/LotWyx/black_heart/releases/latest)
 [![Unity](https://img.shields.io/badge/Unity-6000.6-1f1a26?style=for-the-badge&logo=unity)](https://unity.com)
 [![License](https://img.shields.io/badge/license-all%20rights%20reserved-46040c?style=for-the-badge)](LICENSE)
 
@@ -130,9 +130,10 @@
 
 ## 📥 Скачать
 
-1. Открой [**последний релиз**](https://github.com/LotWyx/black_heart/releases/latest).
-2. Скачай `BlackHeart_vX.Y.Z_Windows.zip`.
-3. Распакуй архив — появится папка `BlackHeart`. Запусти `BlackHeart.exe` внутри неё.
+Открой [**последний релиз**](https://github.com/LotWyx/black_heart/releases/latest).
+
+- **Windows:** скачай `BlackHeart_vX.Y.Z_Windows.zip` и распакуй — появится папка `BlackHeart`. Запусти `BlackHeart.exe` внутри неё.
+- **Android** (8.0 и новее): скачай `BlackHeart_vX.Y.Z_Android.apk` на телефон, открой и разреши установку из неизвестных источников.
 
 ## 🖼️ Галерея
 
