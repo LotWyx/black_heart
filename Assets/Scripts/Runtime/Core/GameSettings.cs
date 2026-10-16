@@ -32,7 +32,7 @@ namespace BlackHeart
 
         static void Save()
         {
-            SaveSystem.Save();
+            SaveSystem.SaveSoon();   // громкость применяется сразу, на диск — когда ползунок отпустили
             Apply();
             OnChanged?.Invoke();
         }

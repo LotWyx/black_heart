@@ -45,13 +45,18 @@ namespace BlackHeart
             return Projectile.CreatePooled(root);
         }
 
+        // Стиль пуль — спрайт текущего врага (Enemies/Skull…): пули рисуются черепами, глазами, призраками.
+        // Задаёт BattleController при появлении врага, поэтому пулям не нужно знать о бое.
+        public string Skin { get; set; }
+
         // variant — особый вид пули у паттерна (Bone, Spirit…); null — обычный вид врага
         // formation — пуля группы: видна только внутри рамки
+        // skin — стиль конкретной пули (осколки наследуют стиль целой); null — текущий Skin
         public Projectile Spawn(ProjectileType type, IProjectileMotion motion, float startTime = 0f, bool fragment = false,
-            string variant = null, bool formation = false)
+            string variant = null, bool formation = false, string skin = null)
         {
             var p = pool.Count > 0 ? pool.Pop() : CreatePooled();
-            p.Init(type, motion, startTime, fragment, variant, formation);
+            p.Init(type, motion, startTime, fragment, variant, formation, skin ?? Skin);
             active.Add(p);
             if (active.Count > PeakActive) PeakActive = active.Count;
             return p;

@@ -67,15 +67,17 @@ namespace BlackHeart
             return d;
         }
 
-        // Пишем во временный файл и подменяем им настоящий: оборванная запись не испортит сохранение
+        // Пишем во временный файл и подменяем им настоящий одной операцией (File.Replace): ни оборванная запись,
+        // ни сбой посреди подмены не оставят игру без сохранения
         public static void Save()
         {
+            dirtySince = -1f;
             try
             {
                 string temp = FilePath + ".tmp";
                 File.WriteAllText(temp, JsonUtility.ToJson(Data, true));
-                if (File.Exists(FilePath)) File.Delete(FilePath);
-                File.Move(temp, FilePath);
+                if (File.Exists(FilePath)) File.Replace(temp, FilePath, null);
+                else File.Move(temp, FilePath);
             }
             catch (Exception e)
             {
@@ -83,8 +85,32 @@ namespace BlackHeart
             }
         }
 
+        // Частые изменения (ползунки громкости) пишутся на диск один раз, когда игрок закончил двигать ползунок
+        const float SaveDelay = 0.5f;
+        static float dirtySince = -1f;
+
+        public static void SaveSoon()
+        {
+            if (dirtySince < 0f) dirtySince = Time.unscaledTime;
+        }
+
+        // Каждый кадр из GameManager; Flush — немедленно (сворачивание и выход из игры)
+        public static void Tick()
+        {
+            if (dirtySince >= 0f && Time.unscaledTime - dirtySince >= SaveDelay) Save();
+        }
+
+        public static void Flush()
+        {
+            if (dirtySince >= 0f) Save();
+        }
+
         // При выключенном Domain Reload статика переживает Play Mode — читаем файл заново
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() => data = null;
+        static void ResetStatics()
+        {
+            data = null;
+            dirtySince = -1f;
+        }
     }
 }

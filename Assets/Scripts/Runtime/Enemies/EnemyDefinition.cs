@@ -23,8 +23,18 @@ namespace BlackHeart
 
         public string laughText = "ХА-ХА-ХА!";
 
+#if UNITY_EDITOR
+        // Атаки указаны строками — опечатку видно сразу при правке ассета, а не только в тестах или в бою
+        void OnValidate()
+        {
+            foreach (var id in patterns)
+                if (!PatternLibrary.Exists(id))
+                    Debug.LogError($"[{name}] Нет атаки '{id}'. Доступные: {string.Join(", ", PatternLibrary.AllIds)}", this);
+        }
+#endif
+
         public string PickPattern() =>
-            patterns.Count > 0 ? patterns[Random.Range(0, patterns.Count)] : StraightPattern.ID;
+            patterns.Count > 0 ? patterns[GameRandom.Range(0, patterns.Count)] : StraightPattern.ID;
 
         public float BlueRatio
         {
@@ -38,7 +48,7 @@ namespace BlackHeart
         public ProjectileType PickSpecialType(bool allowBlue = true)
         {
             if (!allowBlue) return ProjectileType.Purple;
-            return Random.value < BlueRatio ? ProjectileType.Blue : ProjectileType.Purple;
+            return GameRandom.value < BlueRatio ? ProjectileType.Blue : ProjectileType.Purple;
         }
     }
 }

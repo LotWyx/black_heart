@@ -27,7 +27,7 @@ namespace BlackHeart
             float headStart = ctx.Ramp(B.zigzagHeadStartEasy, B.zigzagHeadStartHard, from, to);   // секунды форы после входа в рамку
             var motion = new ZigzagDartMotion(start, ctx.Box.Current, ctx.Target, headStart,
                                               B.zigzagEntrySpeed, ctx.Ramp(B.zigzagSpeedEasy, B.zigzagSpeedHard, from, to), B.zigzagDashSpeed);
-            var type = ctx.Difficulty >= B.highDifficulty && Random.value < B.zigzagPurpleChance ? ProjectileType.Purple : ProjectileType.White;
+            var type = ctx.Difficulty >= B.highDifficulty && GameRandom.value < B.zigzagPurpleChance ? ProjectileType.Purple : ProjectileType.White;
             // мимо ограничений темпа: сюрприз приходит всегда и в своём темпе
             ctx.Projectiles.Spawn(type, motion);
         }

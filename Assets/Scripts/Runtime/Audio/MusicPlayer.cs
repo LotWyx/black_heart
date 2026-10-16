@@ -32,8 +32,27 @@ namespace BlackHeart
             }
         }
 
-        void OnEnable() => GameSettings.OnChanged += ApplyVolume;
-        void OnDisable() => GameSettings.OnChanged -= ApplyVolume;
+        void OnEnable()
+        {
+            GameSettings.OnChanged += ApplyVolume;
+            GameEvents.OnPauseChanged += OnPauseChanged;
+        }
+
+        void OnDisable()
+        {
+            GameSettings.OnChanged -= ApplyVolume;
+            GameEvents.OnPauseChanged -= OnPauseChanged;
+        }
+
+        // На паузе музыка замирает и потом продолжается с того же места
+        void OnPauseChanged(bool paused)
+        {
+            foreach (var s in sources)
+            {
+                if (paused) s.Pause();
+                else s.UnPause();
+            }
+        }
 
         void Start()
         {

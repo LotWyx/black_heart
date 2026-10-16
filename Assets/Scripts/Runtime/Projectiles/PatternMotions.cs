@@ -228,7 +228,7 @@ namespace BlackHeart
             {
                 float k = (float)i / hops;
                 float j = jitter * (1f - k);
-                points[i] = start + d * k + perp * Random.Range(-j, j) + (Vector2)Random.insideUnitCircle * j * 0.4f;
+                points[i] = start + d * k + perp * GameRandom.Range(-j, j) + (Vector2)GameRandom.insideUnitCircle * j * 0.4f;
             }
             points[hops] = target;
             exitDir = (target - points[hops - 1]).normalized;
@@ -284,11 +284,11 @@ namespace BlackHeart
             float enteredAt = t;
 
             // зигзаг: каждый бросок — на 70–115° по эллипсу, направление скачет туда-обратно с перевесом вперёд
-            float dir = Random.value < 0.5f ? 1f : -1f;
+            float dir = GameRandom.value < 0.5f ? 1f : -1f;
             while (t - enteredAt < headStart)
             {
-                if (Random.value < 0.35f) dir = -dir;
-                a += dir * Random.Range(70f, 115f) * Mathf.Deg2Rad;
+                if (GameRandom.value < 0.35f) dir = -dir;
+                a += dir * GameRandom.Range(70f, 115f) * Mathf.Deg2Rad;
                 Vector2 next = OnEllipse(a);
                 t += Vector2.Distance(p, next) / zigzagSpeed;
                 p = next;

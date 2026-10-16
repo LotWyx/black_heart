@@ -38,12 +38,18 @@ namespace BlackHeart
         readonly List<int> opening = new List<int>();   // первые бои забега: каждый враг по разу, в случайном порядке
         GameManager gm => GameManager.I;
 
-        public void Begin()
+        // Сид забега: с тем же сидом враги, атаки и пули выбираются так же (GameRandom). null — новый случайный
+        public int Seed { get; private set; }
+
+        public void Begin(int? seed = null)
         {
             Stop();
+            Seed = seed ?? GameRandom.NewSeed();
+            GameRandom.Init(Seed);
+            Debug.Log($"[Battle] Сид забега: {Seed}");
             Turn = 0;
             opening.Clear();
-            for (int i = 0; i < enemies.Count; i++) opening.Insert(Random.Range(0, opening.Count + 1), i);
+            for (int i = 0; i < enemies.Count; i++) opening.Insert(GameRandom.Range(0, opening.Count + 1), i);
             StartCoroutine(BattleLoop());
         }
 
@@ -57,14 +63,22 @@ namespace BlackHeart
         public void DespawnEnemy()
         {
             if (CurrentEnemy != null) Destroy(CurrentEnemy.gameObject);
-            CurrentEnemy = null;
+            SetEnemy(null);
+        }
+
+        // Текущий враг; пули рисуются в его стиле
+        void SetEnemy(Enemy enemy)
+        {
+            CurrentEnemy = enemy;
+            if (gm != null && gm.Projectiles != null)
+                gm.Projectiles.Skin = enemy != null ? enemy.Definition.spriteId : null;
         }
 
         // Для обучения и особых сцен: поставить конкретного врага и управлять фазами вручную
         public Enemy PlaceEnemy(EnemyDefinition def)
         {
             DespawnEnemy();
-            CurrentEnemy = Enemy.Create(def, EnemyHome());
+            SetEnemy(Enemy.Create(def, EnemyHome()));
             GameEvents.RaiseEnemySpawned(CurrentEnemy);
             return CurrentEnemy;
         }
@@ -120,13 +134,13 @@ namespace BlackHeart
             }
             else
             {
-                index = Random.Range(0, enemies.Count);
+                index = GameRandom.Range(0, enemies.Count);
                 if (enemies.Count > 1 && index == lastEnemyIndex) index = (index + 1) % enemies.Count;
             }
             lastEnemyIndex = index;
             FightTurn = 0;
 
-            CurrentEnemy = Enemy.Create(enemies[index], EnemyHome());
+            SetEnemy(Enemy.Create(enemies[index], EnemyHome()));
             GameEvents.RaiseEnemySpawned(CurrentEnemy);
             yield return CurrentEnemy.Appear();
         }
@@ -155,8 +169,8 @@ namespace BlackHeart
                 Host = this
             };
             // Зигзаг-пуля: с середины сложности, с шансом, раз за фазу — посреди серии атак
-            if (Random.value < ZigzagDart.Chance(Difficulty))
-                StartCoroutine(ZigzagDart.SpawnAfter(ctx, Random.Range(1.5f, 4f)));
+            if (GameRandom.value < ZigzagDart.Chance(Difficulty))
+                StartCoroutine(ZigzagDart.SpawnAfter(ctx, GameRandom.Range(1.5f, 4f)));
 
             // Серия атак: следующая начинается, когда поле почти расчищено
             int attacks = attacksPerPhase;
@@ -168,7 +182,7 @@ namespace BlackHeart
                 last = id;
                 // Высокая сложность: каждая атака либо плотная и медленная, либо быстрая и редкая, почти без синих
                 ctx.SetTempo(Difficulty < B.highDifficulty ? AttackTempo.Normal
-                             : Random.value < 0.5f ? AttackTempo.Dense : AttackTempo.Fast);
+                             : GameRandom.value < 0.5f ? AttackTempo.Dense : AttackTempo.Fast);
                 yield return PatternLibrary.Create(id).Run(ctx);
                 if (i < attacks - 1)
                 {

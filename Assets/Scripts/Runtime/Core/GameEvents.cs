@@ -11,6 +11,7 @@ namespace BlackHeart
         public static event Action OnGameStarted;
         public static event Action<int> OnGameOver;                     // итоговый счёт
         public static event Action<BattlePhase> OnPhaseChanged;
+        public static event Action<bool> OnPauseChanged;                // true — пауза, false — продолжение
 
         // Игрок
         public static event Action<int, int> OnPlayerTakeDamage;        // урон, текущее HP
@@ -38,6 +39,7 @@ namespace BlackHeart
         public static void RaiseGameStarted() => OnGameStarted?.Invoke();
         public static void RaiseGameOver(int score) => OnGameOver?.Invoke(score);
         public static void RaisePhaseChanged(BattlePhase phase) => OnPhaseChanged?.Invoke(phase);
+        public static void RaisePauseChanged(bool paused) => OnPauseChanged?.Invoke(paused);
 
         public static void RaisePlayerTakeDamage(int amount, int hp) => OnPlayerTakeDamage?.Invoke(amount, hp);
         public static void RaisePlayerHealed(int amount, int hp) => OnPlayerHealed?.Invoke(amount, hp);
@@ -62,7 +64,7 @@ namespace BlackHeart
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetSubscriptions()
         {
-            OnGameStarted = null; OnGameOver = null; OnPhaseChanged = null;
+            OnGameStarted = null; OnGameOver = null; OnPhaseChanged = null; OnPauseChanged = null;
             OnPlayerTakeDamage = null; OnPlayerHealed = null; OnPlayerDied = null;
             OnSoulCracked = null; OnSoulShattered = null;
             OnScoreChanged = null; OnCleanDefense = null;

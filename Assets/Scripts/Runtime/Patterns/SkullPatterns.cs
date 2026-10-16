@@ -19,13 +19,13 @@ namespace BlackHeart
         public override IEnumerator Run(AttackContext ctx)
         {
             int walls = ctx.Difficulty >= 0.8f ? 2 : 1;
-            bool fromLeft = Random.value < 0.5f;
+            bool fromLeft = GameRandom.value < 0.5f;
             for (int w = 0; w < walls; w++, fromLeft = !fromLeft)
             {
                 Rect r = ctx.Box.Current;
                 float wallSpeed = ctx.Ramp(2f, 7f, 0f, 2f);
                 int count = Mathf.Max(5, Mathf.FloorToInt((r.height - 0.6f) / 0.85f));
-                int white = Random.Range(0, count);
+                int white = GameRandom.Range(0, count);
                 float x0 = fromLeft ? r.xMin - 0.5f : r.xMax + 0.5f;
                 Vector2 slideDir = fromLeft ? Vector2.right : Vector2.left;
                 float slideDistance = Mathf.Abs(ctx.Target.x - x0) * 0.5f;
@@ -69,7 +69,7 @@ namespace BlackHeart
             // Клеток всегда две. С середины сложности они могут прийти не с боков, а сверху и снизу —
             // вместо боковых, а не в добавок к ним: длина атаки со сложностью не растёт.
             float half = (PerSide - 1) * Spacing / 2f;
-            bool vertical = ctx.Difficulty >= 0.5f && Random.value < 0.5f;
+            bool vertical = ctx.Difficulty >= 0.5f && GameRandom.value < 0.5f;
             Vector2 axis = vertical ? Vector2.up : Vector2.right;
             float reach = (vertical ? r.height : r.width) / 2f + half + 1f;
             int purpleLeft = purpleTotal;
@@ -85,20 +85,20 @@ namespace BlackHeart
         {
             bool sparse = ctx.Difficulty < 0.5f;
             int perimeter = (PerSide - 1) * 4;
-            int purple = purpleCages <= 1 ? purpleLeft : Random.Range(0, purpleLeft + 1);
+            int purple = purpleCages <= 1 ? purpleLeft : GameRandom.Range(0, purpleLeft + 1);
             purpleLeft -= purple;
             var types = new List<ProjectileType>();
             for (int i = 0; i < blue; i++) types.Add(ProjectileType.Blue);
             for (int i = 0; i < purple; i++) types.Add(ProjectileType.Purple);
             while (types.Count < perimeter) types.Add(ProjectileType.White);
-            for (int i = types.Count - 1; i > 0; i--) { int j = Random.Range(0, i + 1); (types[i], types[j]) = (types[j], types[i]); }
+            for (int i = types.Count - 1; i > 0; i--) { int j = GameRandom.Range(0, i + 1); (types[i], types[j]) = (types[j], types[i]); }
             var skip = AttackContext.BlueGaps(types, true);
 
             // Колесо катится: угловая скорость = скорость / радиус, направление — по ходу движения
             Vector2 dir = (ctx.Target - center).normalized;
             float radius = (PerSide - 1) * Spacing / 2f;
             float spin = -Mathf.Sign(dir.x != 0 ? dir.x : -dir.y) * speed / (radius * 1.2f);
-            float angle0 = Random.Range(0f, Mathf.PI / 2f);
+            float angle0 = GameRandom.Range(0f, Mathf.PI / 2f);
 
             var list = new List<Projectile>();
             float half = radius;
@@ -139,11 +139,11 @@ namespace BlackHeart
 
             // бум-круги в случайные моменты атаки: на низкой сложности их нет, второй — только на высокой
             int booms = 0;
-            if (Random.value < ctx.Ramp(0f, 0.8f, 0.3f, 1.2f))
-                booms = Random.value < ctx.Ramp(0f, 0.6f, 0.9f, 1.6f) ? 2 : 1;
+            if (GameRandom.value < ctx.Ramp(0f, 0.8f, 0.3f, 1.2f))
+                booms = GameRandom.value < ctx.Ramp(0f, 0.6f, 0.9f, 1.6f) ? 2 : 1;
             int running = booms;
             for (int b = 0; b < booms; b++)
-                ctx.Host.StartCoroutine(Done(DelayedBoom(ctx, Random.Range(1f, duration - 1.5f), purpleShare), () => running--));
+                ctx.Host.StartCoroutine(Done(DelayedBoom(ctx, GameRandom.Range(1f, duration - 1.5f), purpleShare), () => running--));
 
             float t = 0f;
             while (t < duration)
@@ -175,30 +175,30 @@ namespace BlackHeart
         static IEnumerator Cluster(AttackContext ctx, float purpleShare)
         {
             int n = ctx.RampInt(3, 5, 0f, 1.4f);
-            int blue = 1 + (Random.value < ctx.Ramp(0f, 0.7f, 0.4f, 1.2f) ? 1 : 0) + (Random.value < ctx.Ramp(0f, 0.4f, 0.9f, 1.6f) ? 1 : 0);
+            int blue = 1 + (GameRandom.value < ctx.Ramp(0f, 0.7f, 0.4f, 1.2f) ? 1 : 0) + (GameRandom.value < ctx.Ramp(0f, 0.4f, 0.9f, 1.6f) ? 1 : 0);
             float spread = ctx.Ramp(0.18f, 0.35f, 0f, 1.2f);                                   // разброс кучки, рад
             float blueMin = ctx.Ramp(0.75f, 0.42f, 0f, 1.4f), blueMax = blueMin + 0.15f;      // отступ синих от центра кучки
             var types = ctx.Types(n, 0, purpleShare);
             for (int i = 0; i < blue; i++) types.Add(ProjectileType.Blue);
-            float baseAngle = Random.Range(0f, Mathf.PI * 2f);
+            float baseAngle = GameRandom.Range(0f, Mathf.PI * 2f);
             int blueIndex = 0;
             foreach (var type in types)
             {
-                float angle = baseAngle + Random.Range(-spread, spread);
+                float angle = baseAngle + GameRandom.Range(-spread, spread);
                 if (type == ProjectileType.Blue)
                 {
                     float side = (blueIndex++ % 2 == 0) ? 1f : -1f;
-                    angle = baseAngle + side * Random.Range(blueMin, blueMax);
+                    angle = baseAngle + side * GameRandom.Range(blueMin, blueMax);
                 }
                 Vector2 dir = ctx.Dir(angle);
                 Vector2 start = ctx.PointOffScreen(dir);
                 float distance = ctx.Box.DistanceToEdge(ctx.Target, dir);
-                bool drunk = Random.value < 0.5f;
+                bool drunk = GameRandom.value < 0.5f;
                 float speed = ctx.PickSpeed(drunk ? 1.6f : 2.2f, drunk ? 3f : 4.2f, distance * (drunk ? 1.15f : 1f));
                 IProjectileMotion motion = drunk
-                    ? new DrunkMotion(start, ctx.Target, speed, Random.Range(1.5f, 3f) * (Random.value < 0.5f ? 1 : -1), ctx.Ramp(0.5f, 0.8f))
+                    ? new DrunkMotion(start, ctx.Target, speed, GameRandom.Range(1.5f, 3f) * (GameRandom.value < 0.5f ? 1 : -1), ctx.Ramp(0.5f, 0.8f))
                     : new StraightMotion(start, ctx.Target, speed);
-                bool bone = type != ProjectileType.Blue && Random.value < 0.2f;   // редкие кости среди черепов
+                bool bone = type != ProjectileType.Blue && GameRandom.value < 0.2f;   // редкие кости среди черепов
                 if (bone) ctx.Spawn(type, new FacingMotion(motion), "Bone");
                 else ctx.Spawn(type, motion);
                 yield return new WaitForSeconds(0.12f);
